@@ -1,0 +1,12 @@
+---
+import { profile } from '../data/profile';
+---
+<section class="hero" aria-labelledby="hero-title">
+  <h1 id="hero-title" aria-label="Hello. I am Dot.">
+    {['HELLO.', 'I AM DOT.'].map(line => <span class="hero-line" aria-hidden="true">{[...line].map((char, i) => <span class:list={['letter', { accent: char === '.' }]} style={`--i:${i}`}>{char === ' ' ? '\u00a0' : char}</span>)}</span>)}
+  </h1>
+  <div class="hero-bottom">
+    <p>{profile.roles.join(' / ')}</p>
+    <a class="scroll-link" href="#identity">About <span aria-hidden="true">↓</span></a>
+  </div>
+</section>

@@ -1,0 +1,14 @@
+---
+import Wordmark from './Wordmark.astro';
+---
+<header class="header" id="top">
+  <Wordmark />
+  <nav aria-label="Main navigation">
+    <a href="#identity">About</a>
+    <a href="#environment">Environment</a>
+    <a href="#contact">Contact <span aria-hidden="true">↗</span></a>
+  </nav>
+  <button class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" hidden>
+    <span class="theme-symbol" aria-hidden="true">◐</span><span data-theme-label>Dark</span>
+  </button>
+</header>

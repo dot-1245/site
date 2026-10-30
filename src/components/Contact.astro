@@ -1,0 +1,14 @@
+---
+import { contacts } from '../data/profile';
+import ContactIcon from './ContactIcon.astro';
+---
+<section id="contact" class="contact" aria-labelledby="contact-title">
+  <div class="contact-intro"><div class="section-label"><span class="accent">03 /</span><h2 id="contact-title">Contact</h2></div></div>
+  <nav class="contact-links" aria-label="Contact and social profiles">
+    {contacts.map((contact, index) => <a class="contact-link" href={contact.href} style={`--row:${index}`}>
+      <ContactIcon icon={contact.icon} />
+      <span class="contact-name" aria-label={contact.label}><span aria-hidden="true">{[...contact.label].map((char, i) => <span class="weight-char" style={`--i:${i}`}>{char}</span>)}</span></span>
+      {contact.note && <span class="contact-meta">{contact.note}</span>}<span class="contact-arrow" aria-hidden="true">↗</span>
+    </a>)}
+  </nav>
+</section>

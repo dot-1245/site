@@ -1,0 +1,64 @@
+---
+import { licenseExcerpts } from '../data/license-excerpts';
+
+const splitNames = (text: string) => text.split(/(GNU (?:AFFERO |LESSER )?GENERAL PUBLIC LICENSE|GNU GPL|MIT License|Creative Commons Attribution 4\.0 International(?: Public License)?|Creative Commons|Free Software Foundation|fsf\.org)/gi);
+const splitLinks = (text: string) => text.split(/(https?:\/\/[^\s<>]+|GNU (?:AFFERO |LESSER )?GENERAL PUBLIC LICENSE|GNU GPL|MIT License|Creative Commons Attribution 4\.0 International(?: Public License)?|Creative Commons|Free Software Foundation|fsf\.org)/gi);
+const splitImportant = (text: string) => text.split(/(\b(?:free software|copyleft|freedom|share and change|copy and distribute|copyright notice|permission notice|terms and conditions|additional permissions|without restriction|without limitation|rights|modify|merge|publish|distribute|sublicense|sell copies|shall be included|no warranties|disclaims all liability|not allowed|network server software)\b|as-is)/gi);
+const destination = (part: string) => {
+  if (/^https?:\/\//i.test(part)) return part;
+  if (/^(Free Software Foundation|fsf\.org)$/i.test(part)) return 'https://fsf.org/';
+  if (/^Creative Commons$/i.test(part)) return 'https://creativecommons.org/';
+  if (/^GNU GPL$/i.test(part)) return licenseExcerpts[0].url;
+  return licenseExcerpts.find(license => part.toLowerCase().startsWith(license.name.toLowerCase()))?.url;
+};
+---
+<section class="license-stream" aria-label="License excerpts">
+  <div class="license-flow">
+    {licenseExcerpts.map((license, index) => <div class="license-row" data-license={license.id} style={`--duration:${64 + index * 7}s;--offset:0s`}>
+      <div class="license-track">
+        {[0, 1].map(copy => <span class="license-copy" aria-hidden={copy === 1 ? 'true' : undefined}>{splitLinks(license.text).map((part, i) => i % 2 ? <a class="license-link" href={destination(part)} tabindex={copy === 1 ? -1 : undefined}>{splitNames(part).map((token, j) => j % 2 ? <span class="license-name">{token}</span> : token)}</a> : splitImportant(part).map((token, j) => j % 2 ? <strong class="license-emphasis">{token}</strong> : token))}<span class="license-gap" aria-hidden="true"> / </span></span>)}
+      </div>
+    </div>)}
+  </div>
+  <button class="license-pause" type="button" aria-label="Pause license animation" aria-pressed="false" hidden><span aria-hidden="true">Ⅱ</span></button>
+</section>
+
+<script>
+  const stream = document.querySelector<HTMLElement>('.license-stream');
+  const pause = stream?.querySelector<HTMLButtonElement>('.license-pause');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  let focusFrame = 0;
+  const positionFocusedLink = () => {
+    cancelAnimationFrame(focusFrame);
+    focusFrame = requestAnimationFrame(() => {
+      focusFrame = 0;
+      const link = document.activeElement;
+      if (!(link instanceof HTMLAnchorElement) || !stream?.contains(link) || !link.matches(':focus-visible') || reducedMotion.matches) return;
+      const row = link.closest<HTMLElement>('.license-row');
+      const track = row?.querySelector<HTMLElement>('.license-track');
+      if (!row || !track) return;
+      // Wide license titles must also fit at narrow widths and increased zoom.
+      row.style.setProperty('--focus-width', `${Math.max(1, row.clientWidth - 8)}px`);
+      const box = link.getBoundingClientRect();
+      const left = box.left - track.getBoundingClientRect().left;
+      const offset = Math.max(0, left - (row.clientWidth - box.width) / 2);
+      row.style.setProperty('--focus-offset', `${-offset}px`);
+    });
+  };
+  stream?.addEventListener('focusin', positionFocusedLink);
+  stream?.addEventListener('focusout', () => cancelAnimationFrame(focusFrame));
+  if (stream && 'ResizeObserver' in window) new ResizeObserver(positionFocusedLink).observe(stream);
+  document.fonts?.addEventListener('loadingdone', positionFocusedLink);
+  reducedMotion.addEventListener('change', positionFocusedLink);
+  if (stream && pause) {
+    pause.hidden = false;
+    pause.addEventListener('click', () => {
+      const paused = pause.getAttribute('aria-pressed') !== 'true';
+      pause.setAttribute('aria-pressed', String(paused));
+      pause.setAttribute('aria-label', paused ? 'Resume license animation' : 'Pause license animation');
+      stream.dataset.paused = String(paused);
+      const symbol = pause.querySelector('span');
+      if (symbol) symbol.textContent = paused ? '▶' : 'Ⅱ';
+    });
+  }
+</script>

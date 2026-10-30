@@ -1,0 +1,14 @@
+---
+import type { System } from '../data/profile';
+import SystemLogo from './SystemLogo.astro';
+interface Props { system: System; index: number }
+const { system, index } = Astro.props;
+---
+<article class="system-card" data-os={system.os} data-reveal>
+  <div class="card-top"><span class="system-number">{String(index + 1).padStart(2, '0')}</span><span class="system-role">{system.type}</span></div>
+  <div class="system-heading">
+    <h3>{system.name}</h3>
+    <SystemLogo os={system.os} />
+  </div>
+  <dl>{system.details.map(([label, value]) => <div><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+</article>
