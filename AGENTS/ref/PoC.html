@@ -1,0 +1,2685 @@
+<!DOCTYPE html>
+
+<html data-accent="yamabuki" data-font="mplus" lang="ja">
+<head>
+
+<script id="env-boot">
+(() => {
+  const root = document.documentElement;
+  const STORAGE_KEY = 'dot1245-layout-mode';
+  const params = new URLSearchParams(location.search);
+  const urlView = params.get('view');
+  const stored = localStorage.getItem(STORAGE_KEY);
+
+  // Explicit URL override wins for this page load.
+  // ?view=mobile / ?view=desktop / ?view=auto
+  const urlOverride =
+    urlView === 'mobile' || urlView === 'desktop' ? urlView :
+    urlView === 'auto' ? 'auto' :
+    null;
+
+  const manual =
+    urlOverride && urlOverride !== 'auto' ? urlOverride :
+    stored === 'mobile' || stored === 'desktop' ? stored :
+    null;
+
+  // Best available browser-provided mobile-experience signal.
+  // Chromium-family browsers may expose UA-CH here.
+  const uaDataMobile =
+    navigator.userAgentData &&
+    typeof navigator.userAgentData.mobile === 'boolean'
+      ? navigator.userAgentData.mobile
+      : null;
+
+  const ua = navigator.userAgent || '';
+
+  // Generic fallback only. No browser-name branching.
+  // We intentionally respect the UA the browser chooses to expose, because
+  // "Request desktop site" often works by presenting a desktop-style UA.
+  const uaLooksMobile =
+    /iPhone|iPod|Windows Phone|IEMobile|Opera Mini|webOS|BlackBerry|BB10/i.test(ua) ||
+    (/Android/i.test(ua) && /Mobile/i.test(ua));
+
+  let layout;
+  let layoutSource;
+
+  if (manual) {
+    layout = manual;
+    layoutSource = urlOverride ? 'url override' : 'manual override';
+  } else if (uaDataMobile !== null) {
+    layout = uaDataMobile ? 'mobile' : 'desktop';
+    layoutSource = 'UA-CH';
+  } else {
+    layout = uaLooksMobile ? 'mobile' : 'desktop';
+    layoutSource = 'UA fallback';
+  }
+
+  // Input capabilities are a separate axis from layout.
+  const finePrimary = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  const coarsePrimary = matchMedia('(pointer:coarse)').matches;
+  const noHoverPrimary = matchMedia('(hover:none)').matches;
+  const anyFine = matchMedia('(any-hover:hover) and (any-pointer:fine)').matches;
+  const anyCoarse = matchMedia('(any-pointer:coarse)').matches;
+  const touchPoints = navigator.maxTouchPoints || 0;
+
+  const input = finePrimary ? 'pointer' : 'touch';
+
+  root.dataset.layout = layout;
+  root.dataset.input = input;
+  root.dataset.layoutSource = layoutSource;
+  root.dataset.uaMobile = String(uaDataMobile ?? uaLooksMobile);
+  root.dataset.anyFine = String(anyFine);
+  root.dataset.anyCoarse = String(anyCoarse);
+  root.dataset.touch = String(touchPoints > 0);
+
+  window.__dotEnvBoot = {
+    layout,
+    input,
+    layoutSource,
+    override: manual || 'auto',
+    uaDataMobile,
+    uaLooksMobile,
+    finePrimary,
+    coarsePrimary,
+    noHoverPrimary,
+    anyFine,
+    anyCoarse,
+    touchPoints,
+    ua
+  };
+})();
+</script>
+
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>dot1245 motion/type font comparison</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@100..900&amp;family=Noto+Sans+JP:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<style>
+html[data-accent=papaya]{--a-d:#ff9a3d;--a-l:#e8701a}
+html[data-accent=yamabuki]{--a-d:#f8b500;--a-l:#f8b500}
+html[data-accent=neon]{--a-d:#39ff14;--a-l:#00a83a}
+:root{--font:"M PLUS 1",sans-serif;--bg:#fafafa;--fg:#0a0a0a;--mut:#6f6f6f;--line:#dcdcdc;--accent:var(--a-l);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--fg:#f0f0f0;--mut:#8a8a8a;--line:#222;--accent:var(--a-d)}}
+:root[data-theme="dark"]{--bg:#000;--fg:#f0f0f0;--mut:#8a8a8a;--line:#222;--accent:var(--a-d)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--font);overflow-x:hidden}
+small{font-size:12px;color:var(--mut);line-height:1.4}
+button{font:500 12px var(--font);background:none;color:var(--fg);border:1px solid var(--line);padding:7px 12px;cursor:pointer}
+button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
+button:not([data-morph]):is(:hover,:focus-visible){border-color:var(--fg)}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:center;padding:12px 24px;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar b{font-weight:800;letter-spacing:-.03em}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+section{padding:48px 24px;max-width:1200px;margin:auto}
+h2{font-weight:700;font-size:20px;letter-spacing:-.02em;margin-bottom:6px}
+.lead{color:var(--mut);max-width:60ch;margin-bottom:24px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{border:1px solid var(--line)}
+.p{padding:20px;min-height:240px;display:flex;flex-direction:column;justify-content:space-between;gap:16px}
+.pd{background:#000;color:#f0f0f0}.pl{background:#fafafa;color:#0a0a0a}
+.p small{color:inherit;opacity:.6}
+.p h3{font-weight:800;font-size:clamp(44px,8vw,68px);line-height:.92;letter-spacing:-.05em}
+.p i{font-style:normal;color:var(--c)}
+.row{display:flex;gap:12px;align-items:center;font-size:14px}
+.row u{text-decoration-color:var(--c);text-decoration-thickness:2px;text-underline-offset:4px}
+.chip{background:var(--c);color:#000;padding:2px 8px;font-weight:700;font-size:12px;letter-spacing:.04em}
+.fx{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+@media(min-width:720px){.fx{grid-template-columns:1fr 1fr}.cell.w{grid-column:1/-1}}
+.cell{background:var(--bg);padding:20px;min-height:200px;display:flex;flex-direction:column;justify-content:space-between;gap:20px;overflow:hidden;overflow:clip}
+.cell.w{min-height:0}
+.cell button{align-self:flex-start}
+.big{font-weight:800;font-size:clamp(40px,7vw,72px);line-height:1.05;letter-spacing:-.04em}
+.wd{display:inline-block;white-space:nowrap}
+.dot{color:var(--accent)}
+.mq{display:flex;width:max-content;--mq-delay:0s;animation:mq 26s linear var(--mq-delay) infinite}
+.mq:is(:hover,:focus-visible){animation-play-state:paused;cursor:ew-resize}
+.mq span{white-space:pre}
+.mq i{font-style:normal;color:var(--accent)}
+@keyframes mq{to{transform:translateX(-50%)}}
+.ol{color:transparent;-webkit-text-stroke:2px var(--fg);transition:color .3s,-webkit-text-stroke-color .3s}
+.ol:is(:hover,:focus-visible){color:var(--accent);-webkit-text-stroke-color:var(--accent)}
+.st{overflow:hidden;padding-bottom:.1em}
+.st .c{display:inline-block;transform:translateY(110%);transition:transform .8s cubic-bezier(.2,.8,.2,1);transition-delay:calc(var(--i)*30ms)}
+.st.in .c{transform:none}
+.vw .c{display:inline-block;--w:200;font-variation-settings:"wght" var(--w)}
+.sc{font:700 clamp(30px,6vw,56px)/1.1 var(--font);letter-spacing:-.04em;cursor:default}
+.sp{--x:-300px;--y:-300px;background:radial-gradient(circle 110px at var(--x) var(--y),var(--accent),var(--mut) 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gl{position:relative;display:inline-block;cursor:default}
+.gl::before,.gl::after{content:attr(data-t);position:absolute;inset:0;opacity:0}
+.gl::before{color:var(--accent)}
+.gl::after{color:var(--fg)}
+.gl:is(:hover,:focus-visible)::before{opacity:1;animation:g1 .5s steps(2) infinite}
+.gl:is(:hover,:focus-visible)::after{opacity:.5;animation:g2 .5s steps(2) infinite}
+@keyframes g1{0%{transform:translate(-5px,0);clip-path:inset(10% 0 60% 0)}50%{transform:translate(5px,2px);clip-path:inset(55% 0 10% 0)}100%{transform:translate(-3px,-1px);clip-path:inset(30% 0 40% 0)}}
+@keyframes g2{0%{transform:translate(4px,0);clip-path:inset(60% 0 10% 0)}50%{transform:translate(-4px,-2px);clip-path:inset(5% 0 65% 0)}100%{transform:translate(3px,1px);clip-path:inset(40% 0 30% 0)}}
+.tw{
+  font:700 clamp(22px,4vw,34px)/1.3 var(--font);
+  white-space:nowrap;
+  min-height:1.3em;
+  letter-spacing:-.03em;
+}
+.tw-text{display:inline}
+.tw-caret{
+  display:inline-block;
+  width:.14em;
+  height:.92em;
+  margin-left:.08em;
+  vertical-align:-.08em;
+  background:var(--accent);
+  animation:twblink .72s step-end infinite;
+}
+@keyframes twblink{50%{opacity:0}}}
+.sl{white-space:nowrap;letter-spacing:var(--ls,-.05em)}
+.wp{position:relative;display:inline-block;overflow:hidden;padding-right:.05em}
+.wp>span{opacity:0}
+.wp::after{content:"";position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left}
+.wp.in::after{animation:wpb .9s cubic-bezier(.7,0,.2,1) forwards}
+.wp.in>span{animation:wpt 0s .45s forwards}
+@keyframes wpb{0%{transform:scaleX(0);transform-origin:left}50%{transform:scaleX(1);transform-origin:left}50.01%{transform:scaleX(1);transform-origin:right}100%{transform:scaleX(0);transform-origin:right}}
+@keyframes wpt{to{opacity:1}}
+.hl{position:relative;display:inline-block;padding:0 .12em}
+.hl::before{content:"";position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left}
+.hl>span{position:relative;color:transparent}
+.hl.in::before{animation:hlfill .6s cubic-bezier(.7,0,.2,1) forwards}
+.hl.in>span{animation:hltext .15s .4s linear forwards}
+@keyframes hlfill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes hltext{from{color:transparent}to{color:var(--bg)}}
+.lk{color:var(--fg);text-decoration:none;font-weight:700;font-size:clamp(24px,4vw,34px);letter-spacing:-.03em;line-height:1.25}
+.lk:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.stk{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.bw{position:relative;display:inline-block;padding:0 .2em;margin-left:-.2em}
+.bw::before{content:"";position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:right;transition:transform .45s cubic-bezier(.7,0,.2,1)}
+.bw>span{position:relative;transition:color .2s}
+.bw:is(:hover,:focus-visible)::before{transform:scaleX(1);transform-origin:left}
+.bw:is(:hover,:focus-visible)>span{color:var(--bg)}
+.ud{position:relative;display:inline-block}
+.ud::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--accent);transform:scaleX(0);transform-origin:right;transition:transform .45s cubic-bezier(.7,0,.2,1)}
+.ud:is(:hover,:focus-visible)::after{transform:scaleX(1);transform-origin:left}
+.tr{position:relative;display:inline-block;overflow:hidden}
+.tr>span{display:block;transition:transform .45s cubic-bezier(.7,0,.2,1)}
+.tr::after{content:attr(data-t);position:absolute;left:0;top:100%;color:var(--accent);transition:transform .45s cubic-bezier(.7,0,.2,1)}
+.tr:is(:hover,:focus-visible)>span,.tr:is(:hover,:focus-visible)::after{transform:translateY(-100%)}
+.ar{display:inline-flex;gap:.4em;align-items:center;transition:color .3s}
+.ar i{font-style:normal;transition:transform .35s cubic-bezier(.7,0,.2,1)}
+.ar:is(:hover,:focus-visible){color:var(--accent)}
+.ar:is(:hover,:focus-visible) i{transform:translateX(.45em)}
+.dm{list-style:none;padding:0}
+.dm a{display:block;font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:-.04em;line-height:1.15;color:var(--fg);text-decoration:none;transition:opacity .3s,color .3s}
+.dm:is(:hover,:focus-within) a{opacity:.25}
+.dm a:is(:hover,:focus-visible){opacity:1;color:var(--accent)}
+.cf{position:relative;display:inline-block;overflow:hidden;isolation:isolate;align-self:flex-start;padding:16px 28px;border:1px solid var(--fg);color:var(--fg);text-decoration:none;font-weight:600;transition:color .3s}
+.cf::before{content:"";position:absolute;z-index:-1;left:var(--x,50%);top:var(--y,50%);width:0;aspect-ratio:1;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);transition:width .55s cubic-bezier(.7,0,.2,1)}
+.cf:is(:hover,:focus-visible){color:var(--bg)}
+.cf:is(:hover,:focus-visible)::before{width:320%}
+.yks{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.yk{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:.08em .3em;overflow:hidden;border-bottom:1px solid var(--line);color:var(--fg);text-decoration:none;font-size:clamp(34px,8vw,76px);line-height:1.1;letter-spacing:-.04em;transition:opacity .3s}
+
+.yk::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:var(--cx,50%);
+  top:var(--cy,50%);
+  width:12px;
+  aspect-ratio:1;
+  border-radius:50%;
+  background:var(--accent);
+  opacity:0;
+  transform:translate(-50%,-50%);
+  transition:
+    width .68s cubic-bezier(.65,.05,0,1),
+    opacity .10s linear;
+  will-change:width,opacity,left,top;
+}
+.yks:is(:hover,:focus-within) .yk{opacity:.25}
+.yks .yk:is(:hover,:focus-visible){opacity:1}
+.yk:is(:hover,:focus-visible)::before{
+  width:260%;
+  opacity:1;
+}
+.yt{position:relative;z-index:1;display:inline-block;overflow:hidden;padding-bottom:.08em}
+.yl{display:inline-block;white-space:nowrap}
+.yk .c{display:inline-block;--w:400;font-variation-settings:"wght" var(--w);transform:translateY(110%);transition:transform .8s cubic-bezier(.2,.8,.2,1) calc(var(--r)*120ms + var(--i)*30ms)}
+.yks.in .c{transform:none}
+.yt{transition:color .2s .15s}
+.yk:is(:hover,:focus-visible) .yt{color:var(--bg)}
+.yr{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  gap:.7em;
+  min-width:0;
+}
+.ym{
+  font-size:clamp(9px,1.2vw,12px);
+  line-height:1.1;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  white-space:nowrap;
+  color:var(--bg);
+  opacity:0;
+  transform:translateY(130%);
+  transition:transform .42s cubic-bezier(.7,0,.2,1),opacity .22s;
+}
+.ya{font-style:normal;font-size:.55em;transform:translateX(-.35em);transition:transform .45s cubic-bezier(.7,0,.2,1),color .2s .3s}
+.yk:is(:hover,:focus-visible) .ym{opacity:1;transform:none}
+.yk:is(:hover,:focus-visible) .ya{transform:translateX(.15em);color:var(--bg)}
+
+.morph-stage{
+  position:relative;
+  min-height:240px;
+  overflow:hidden;
+  touch-action:pan-y;
+  isolation:isolate;
+}
+.morph-stage[data-pointer="fine"],
+.morph-stage[data-pointer="fine"] a,
+.morph-stage[data-pointer="fine"] button{
+  cursor:none;
+}
+.morph-links{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:10px;
+  padding-top:18px;
+}
+.morph-link,
+.morph-btn{
+  position:relative;
+  z-index:2;
+  color:var(--fg);
+  text-decoration:none;
+  font:700 clamp(24px,4vw,38px)/1.15 var(--font);
+  letter-spacing:-.035em;
+  transition:color .12s linear;
+}
+.morph-btn{
+  border:1px solid var(--line);
+  padding:.24em .48em;
+}
+.morph-link.morph-hot,
+.morph-btn.morph-hot{
+  color:var(--bg);
+}
+.morph-cursor{display:none!important;
+  position:absolute;
+  z-index:1;
+  left:0;
+  top:0;
+  width:14px;
+  height:14px;
+  border-radius:999px;
+  background:var(--accent);
+  pointer-events:none;
+  opacity:0;
+  transform:translate3d(-100px,-100px,0);
+  will-change:transform,width,height,border-radius,opacity;
+  transition:
+    opacity .16s linear,
+    background-color .15s linear;
+}
+.morph-stage.is-on-target .morph-cursor{display:none!important;
+  background:var(--accent);
+}
+
+
+
+
+.note{color:var(--mut);font-size:14px;max-width:60ch}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.st .c{transform:none}.wp>span{opacity:1}.wp::after{display:none}.hl>span{color:var(--bg)}.hl::before{transform:scaleX(1)}.yk .c{transform:none}}
+
+.vw .c,.yk .c{
+  font-variation-settings:"wght" var(--w,400);
+}
+
+
+/* === YAKESUKU HOVER PACK ================================================== */
+
+/* 09 Split Slide */
+.ss{position:relative;display:inline-block;overflow:hidden;padding:.08em .02em;text-decoration:none;color:var(--fg);font-size:clamp(25px,4vw,36px);font-weight:760;line-height:1.05}
+.ss .ss-a,.ss .ss-b{display:block;transition:transform .48s cubic-bezier(.7,0,.2,1),color .25s}
+.ss .ss-b{position:absolute;left:0;top:100%;color:var(--accent)}
+.ss:is(:hover,:focus-visible) .ss-a{transform:translateY(-110%)}
+.ss:is(:hover,:focus-visible) .ss-b{transform:translateY(-100%)}
+
+/* 11 Elastic Width */
+.ewrow{display:flex;gap:8px;width:100%;overflow:hidden}
+.ew{
+  flex:1 1 0;
+  min-width:0;
+  border:1px solid var(--line);
+  padding:20px 14px;
+  text-decoration:none;
+  color:var(--fg);
+  font-weight:720;
+  white-space:nowrap;
+  overflow:hidden;
+  transition:flex .48s cubic-bezier(.65,.05,0,1),background .25s,color .25s;
+}
+.ewrow:is(:hover,:focus-within) .ew{flex:1 1 0}
+.ewrow .ew:is(:hover,:focus-visible){flex:2.25 1 0;background:var(--accent);color:var(--bg)}
+
+/* 12 Accordion Nav */
+.acnav{display:flex;height:128px;border:1px solid var(--line);overflow:hidden}
+.acnav a{
+  position:relative;
+  flex:1 1 0;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+  text-decoration:none;
+  color:var(--fg);
+  border-right:1px solid var(--line);
+  overflow:hidden;
+  transition:flex .52s cubic-bezier(.65,.05,0,1),background .3s,color .3s;
+}
+.acnav a:last-child{border-right:0}
+.acnav a b{
+  display:block;
+  font-size:clamp(17px,2.35vw,26px);
+  line-height:1;
+  letter-spacing:.02em;
+  white-space:nowrap;
+  transform:rotate(-90deg);
+  transform-origin:center;
+  transition:transform .52s cubic-bezier(.65,.05,0,1);
+}
+.acnav:is(:hover,:focus-within) a{flex:.8 1 0}
+.acnav a:is(:hover,:focus-visible){flex:3.3 1 0;background:var(--accent);color:var(--bg)}
+.acnav a:is(:hover,:focus-visible) b{transform:rotate(0deg)}
+
+/* 14 Tracking Burst */
+.tb{display:inline-block;text-decoration:none;color:var(--fg);font-size:clamp(26px,4vw,36px);font-weight:760;letter-spacing:-.04em;transition:letter-spacing .46s cubic-bezier(.7,0,.2,1),color .25s}
+.tb:is(:hover,:focus-visible){letter-spacing:.28em;color:var(--accent)}
+
+/* 18 Underline Sweep + Label Shift */
+.us{display:flex;align-items:baseline;justify-content:space-between;gap:22px;position:relative;padding:8px 0;text-decoration:none;color:var(--fg);font-size:clamp(22px,3.5vw,31px);font-weight:720;overflow:hidden}
+.us::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--accent);transform:scaleX(0);transform-origin:right;transition:transform .44s cubic-bezier(.7,0,.2,1)}
+.us em{font-style:normal;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);transform:translateX(22px);opacity:0;transition:transform .4s cubic-bezier(.7,0,.2,1),opacity .25s}
+.us:is(:hover,:focus-visible)::after{transform:scaleX(1);transform-origin:left}
+.us:is(:hover,:focus-visible) em{transform:none;opacity:1}
+
+/* 19 Clip Reveal */
+.cr{position:relative;display:inline-block;text-decoration:none;color:var(--fg);font-size:clamp(27px,4vw,38px);font-weight:780}
+.cr::after{content:attr(data-text);position:absolute;inset:0;color:var(--accent);clip-path:inset(100% 0 0 0);transition:clip-path .48s cubic-bezier(.7,0,.2,1)}
+.cr:is(:hover,:focus-visible)::after{clip-path:inset(0 0 0 0)}
+
+/* 20 Ghost Duplicate */
+.gd{
+  display:inline-block;
+  text-decoration:none;
+  color:var(--fg);
+  font-size:clamp(27px,4vw,38px);
+  font-weight:760;
+  text-shadow:0 0 0 transparent,0 0 0 transparent;
+  transition:text-shadow .34s cubic-bezier(.2,.8,.2,1),transform .34s cubic-bezier(.2,.8,.2,1);
+}
+.gd:is(:hover,:focus-visible){
+  text-shadow:-5px -3px 0 var(--accent),6px 4px 0 color-mix(in srgb,var(--fg) 35%,transparent);
+  transform:translateY(-1px);
+}
+
+/* 21 Inline Marquee */
+.im{display:block;position:relative;overflow:hidden;border-block:1px solid var(--line);text-decoration:none;color:var(--fg);font-size:clamp(24px,4vw,36px);font-weight:760;height:1.35em;line-height:1.35em}
+.im-track{position:absolute;left:0;top:0;display:flex;gap:1.25em;white-space:nowrap;transform:translateX(0)}
+.im:is(:hover,:focus-visible) .im-track{animation:imove 2.4s linear infinite;color:var(--accent)}
+@keyframes imove{to{transform:translateX(-33.333%)}}
+
+/* 24 Hover Scramble */
+.hs{
+  display:inline-block;
+  min-width:9ch;
+  text-decoration:none;
+  color:var(--fg);
+  font-size:clamp(27px,4vw,38px);
+  font-weight:760;
+  letter-spacing:-.04em;
+  font-variant-ligatures:none;
+  transition:color .18s;
+}
+.hs:is(:hover,:focus-visible){color:var(--accent)}
+.hs::after{
+  content:"_";
+  display:inline-block;
+  margin-left:.08em;
+  opacity:0;
+}
+.hs.scrambling::after{opacity:1;animation:hsblink .18s step-end infinite}
+@keyframes hsblink{50%{opacity:0}}
+
+
+
+@media (hover:hover) and (pointer:fine){
+  .yks .yk{cursor:none}
+}
+
+
+/* Everything-at-once wide cursor follower */
+.everything-stage{
+  position:relative;
+  isolation:isolate;
+  padding-top:.01px;
+}
+.everything-cursor{display:none!important;
+  position:absolute;
+  z-index:6;
+  left:0;
+  top:0;
+  width:12px;
+  height:12px;
+  border-radius:999px;
+  background:var(--accent);
+  pointer-events:none;
+  opacity:0;
+  transform:translate3d(-100px,-100px,0);
+  will-change:transform,width,height,border-radius,opacity;
+  transition:
+    opacity .12s linear,
+    background-color .14s linear;
+}
+.everything-stage.cursor-on-row .everything-cursor{display:none!important;
+  opacity:1!important;
+  background:var(--cursor-fill);
+  mix-blend-mode:normal;
+}
+#yrp{
+  position:relative;
+  z-index:7;
+  margin-top:16px;
+  background:transparent;
+  transition:color .12s linear,border-color .12s linear;
+}
+@media (hover:hover) and (pointer:fine){
+  .everything-stage,
+  .everything-stage .yk{
+    cursor:none;
+  }
+}
+
+
+.everything-stage.cursor-on-text .everything-cursor{display:none!important;
+  background:var(--fg);
+}
+
+
+::selection{
+  background:var(--accent);
+  color:var(--bg);
+}
+::-moz-selection{
+  background:var(--accent);
+  color:var(--bg);
+}
+
+.acnav .ac-long b{font-size:clamp(16px,2.15vw,24px)}
+.acnav .ac-long:is(:hover,:focus-visible) b{font-size:clamp(17px,2.35vw,26px)}
+
+
+.everything-stage:not(.cursor-on-row) .everything-cursor{display:none!important;
+  mix-blend-mode:normal;
+}
+
+
+button{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  transition:color .18s,border-color .18s;
+}
+button:not([data-morph])::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  left:var(--bx,50%);
+  top:var(--by,50%);
+  width:0;
+  aspect-ratio:1;
+  border-radius:50%;
+  background:var(--accent);
+  transform:translate(-50%,-50%);
+  transition:width .5s cubic-bezier(.7,0,.2,1);
+  pointer-events:none;
+}
+button:is(:hover,:focus-visible){
+  /* Keep the real label in the normal foreground color.
+     The black-on-Yamabuki part is painted locally by ::after. */
+  border-color:var(--accent);
+}
+button:not([data-morph]):is(:hover,:focus-visible)::before{
+  width:320%;
+}
+
+/* Selection-style local contrast for button labels.
+   Base label: foreground color on the page background.
+   Duplicate label: page-background color, visible only inside the Yamabuki fill. */
+button[data-btn-label]:not([data-morph])::after{
+  content:attr(data-btn-label);
+  position:absolute;
+  z-index:2;
+  inset:0;
+  box-sizing:border-box;
+  padding:inherit;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  color:var(--bg);
+  background:transparent;
+  pointer-events:none;
+  clip-path:circle(0 at var(--bx,50%) var(--by,50%));
+  transition:clip-path .5s cubic-bezier(.7,0,.2,1);
+}
+button[data-btn-label]:not([data-morph]):is(:hover,:focus-visible)::after{
+  clip-path:circle(240% at var(--bx,50%) var(--by,50%));
+}
+
+
+.everything-stage.cursor-on-button .everything-cursor{display:none!important;
+  opacity:1!important;
+  background:var(--accent);
+  mix-blend-mode:normal;
+}
+
+
+
+
+
+
+/* === GLOBAL CURSOR SYSTEM ==================================================
+   Every custom cursor uses the same color logic:
+   accent + difference blend.
+
+   dot          -> normal / interactive
+   caret        -> selectable text
+   horizontal   -> horizontal scroll / scrub
+   vertical     -> active page scroll
+   drag         -> future draggable regions
+============================================================================ */
+.global-cursor{
+  position:fixed;
+  left:0;
+  top:0;
+  z-index:2147483646;
+  width:12px;
+  height:12px;
+  border-radius:999px;
+  background:var(--accent);
+  mix-blend-mode:normal;
+  pointer-events:none;
+  opacity:0;
+  transform:translate3d(-100px,-100px,0);
+  will-change:transform,width,height,border-radius,opacity;
+  transition:opacity .10s linear;
+  display:grid;
+  place-items:center;
+  font:800 10px/1 var(--font);
+  letter-spacing:0;
+  color:#fff;
+}
+.global-cursor::before{
+  content:"";
+  display:block;
+  white-space:nowrap;
+}
+
+/* text caret */
+.global-cursor.is-text{
+  width:3px;
+  border-radius:2px;
+}
+.global-cursor.is-text::before{content:""}
+
+/* link/button: same dot, same difference color */
+.global-cursor.is-interactive{
+  width:12px;
+  height:12px;
+  border-radius:999px;
+}
+
+/* scroll cursors */
+.global-cursor.is-scroll-x{
+  width:42px;
+  height:22px;
+  border-radius:999px;
+}
+.global-cursor.is-scroll-x::before{
+  content:"↔";
+  font-size:14px;
+}
+
+/* generic drag hook for future components */
+.global-cursor.is-drag{
+  width:38px;
+  height:38px;
+}
+.global-cursor.is-drag::before{
+  content:"↔";
+  transform:rotate(-45deg);
+  font-size:13px;
+}
+
+@media (hover:hover) and (pointer:fine){
+  html,body,
+  a,button,
+  [role="button"],
+  input,textarea,select,label,summary,
+  [data-cursor-scroll-x],
+  [data-cursor-drag],
+  [draggable="true"]{
+    cursor:none!important;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .global-cursor{transition:none!important}
+}
+
+
+#mq,
+#mq:hover,
+#mq:focus,
+#mq:focus-within,
+#mq span,
+#mq:hover span{
+  color:var(--fg)!important;
+  text-decoration:none!important;
+}
+#mq i{
+  color:var(--accent)!important;
+}
+
+
+.global-cursor{
+  color:var(--bg);
+}
+
+/* Global morph target: keep target content above the cursor fill. */
+.global-morph-hot{
+  position:relative!important;
+  z-index:2147483647!important;
+  color:var(--bg)!important;
+}
+
+
+/* === Selection-style cursor paint =========================================
+   Do NOT use difference blending here:
+   #F8B500 difference #F0F0F0 = blue-ish, which was the mystery blue.
+
+   Instead:
+   1. cursor itself is a solid accent shape;
+   2. a second overlay redraws the hovered text/content in var(--bg);
+   3. that overlay is clipped to the cursor's exact bounds/radius.
+
+   Result: exactly the same visual grammar as ::selection:
+   accent background + background-colored text, per cursor-covered pixel area.
+============================================================================ */
+.global-cursor{
+  background:var(--accent)!important;
+  mix-blend-mode:normal!important;
+  color:var(--bg)!important;
+  z-index:2147483645!important;
+  overflow:hidden;
+}
+
+.global-cursor.is-text,
+.global-cursor.is-interactive,
+.global-cursor.is-scroll-x,
+.global-cursor.is-drag,
+.global-cursor.is-morph{
+  background:var(--accent)!important;
+  mix-blend-mode:normal!important;
+}
+
+.global-cursor::before{
+  position:relative;
+  z-index:2;
+  color:var(--bg)!important;
+}
+
+.global-cursor-ink{
+  position:fixed;
+  left:0;
+  top:0;
+  z-index:2147483646;
+  pointer-events:none;
+  overflow:hidden;
+  opacity:0;
+  transform:translate3d(-100px,-100px,0);
+  width:12px;
+  height:12px;
+  border-radius:999px;
+  will-change:transform,width,height,border-radius,opacity;
+}
+
+.global-cursor-ink-inner{
+  position:absolute;
+  pointer-events:none!important;
+  margin:0!important;
+  transform:none!important;
+  animation:none!important;
+  transition:none!important;
+  color:var(--bg)!important;
+  background:transparent!important;
+}
+
+.global-cursor-ink-inner,
+.global-cursor-ink-inner *{
+  color:var(--bg)!important;
+  text-shadow:none!important;
+  -webkit-text-stroke-color:var(--bg)!important;
+}
+
+/* Let special accent glyphs also become selection-ink inside the cursor.
+   Outside the cursor, the real element keeps its normal color. */
+.global-cursor-ink-inner i{
+  color:var(--bg)!important;
+}
+
+/* The old morph implementation recolored the whole target.
+   Local recoloring is now handled by the clipped ink overlay instead. */
+.global-morph-hot{
+  color:inherit!important;
+  z-index:auto!important;
+}
+
+
+button[aria-pressed=true]:not([data-morph]):is(:hover,:focus-visible){
+  color:var(--accent);
+}
+
+
+/* Local cursor contrast over Yamabuki fills.
+   Base cursor stays Yamabuki. A black duplicate is clipped to the exact
+   animated fill circle beneath it, so only the overlapping pixels turn black. */
+.global-cursor-black{
+  position:fixed;
+  left:0;
+  top:0;
+  z-index:2147483647;
+  width:12px;
+  height:12px;
+  border-radius:999px;
+  background:#000;
+  pointer-events:none;
+  opacity:0;
+  transform:translate3d(-100px,-100px,0);
+  clip-path:circle(0 at 0 0);
+  will-change:transform,width,height,border-radius,clip-path,opacity;
+}
+
+
+/* Accent-ink layer:
+   inside an accent-filled region:
+     Yamabuki background -> cursor becomes black
+     black glyph/text     -> cursor becomes Yamabuki again
+   This is deliberately layered above the black cursor duplicate. */
+.global-cursor-accent-ink{
+  position:fixed;
+  left:0;
+  top:0;
+  z-index:2147483648;
+  width:12px;
+  height:12px;
+  border-radius:999px;
+  pointer-events:none;
+  overflow:hidden;
+  opacity:0;
+  transform:translate3d(-100px,-100px,0);
+  clip-path:circle(0 at 0 0);
+  will-change:transform,width,height,border-radius,clip-path,opacity;
+}
+.global-cursor-accent-ink-inner{
+  position:absolute;
+  pointer-events:none!important;
+  margin:0!important;
+  transform:none!important;
+  animation:none!important;
+  transition:none!important;
+  background:transparent!important;
+}
+.global-cursor-accent-ink-inner,
+.global-cursor-accent-ink-inner *{
+  color:var(--accent)!important;
+  text-shadow:none!important;
+  -webkit-text-stroke-color:var(--accent)!important;
+}
+
+
+.yk-fill-probe{
+  position:absolute;
+  left:var(--cx,50%);
+  top:var(--cy,50%);
+  z-index:-100;
+  width:12px;
+  aspect-ratio:1;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  opacity:0;
+  pointer-events:none;
+  transition:width .68s cubic-bezier(.65,.05,0,1);
+}
+.yk:is(:hover,:focus-visible) > .yk-fill-probe{
+  width:260%;
+}
+
+/* Clones used only to repaint text inside the cursor must not recreate the
+   original fill or animation state. */
+.global-cursor-accent-ink-inner button::before,
+.global-cursor-accent-ink-inner button::after,
+.global-cursor-accent-ink-inner .cf::before,
+.global-cursor-accent-ink-inner .yk::before{
+  display:none!important;
+}
+.global-cursor-accent-ink-inner .yk{
+  opacity:1!important;
+  color:var(--accent)!important;
+}
+.global-cursor-accent-ink-inner .yk .c{
+  transform:none!important;
+  color:var(--accent)!important;
+}
+.global-cursor-accent-ink-inner .yk .ym{
+  opacity:1!important;
+  transform:none!important;
+  color:var(--accent)!important;
+}
+.global-cursor-accent-ink-inner .yk .ya,
+.global-cursor-accent-ink-inner .yk .yt{
+  color:var(--accent)!important;
+}
+
+
+/* Keyboard parity:
+   - Never remove the browser focus outline here.
+   - Interactive hover effects also respond to :focus-visible.
+   - Parent sibling-dimming/accordion states use :focus-within so Tab navigation
+     gets the same context as pointer hover. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+summary:focus-visible{
+  outline-color:var(--accent);
+}
+
+/* Circle-fill links entered by keyboard have no pointer entry coordinate,
+   so use the center as a deterministic origin. */
+.cf:focus-visible{
+  --x:50%;
+  --y:50%;
+}
+
+
+/* === CUSTOM FOCUS + ACCESSIBILITY =========================================
+   Native browser focus rings are intentionally replaced, not simply removed.
+   Pointer hover and keyboard focus share the same motion language, while the
+   small corner marker gives keyboard users a stable non-motion cue.
+============================================================================ */
+
+.skip-link{
+  position:fixed;
+  left:12px;
+  top:12px;
+  z-index:2147483647;
+  padding:8px 12px;
+  background:var(--accent);
+  color:#000;
+  text-decoration:none;
+  transform:translateY(-180%);
+  transition:transform .18s ease;
+}
+.skip-link:focus-visible{
+  outline:none;
+  transform:translateY(0);
+}
+
+/* One consistent, non-native focus marker.
+   It remains visible even when reduced motion disables hover animation. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible{
+  outline:none!important;
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    inset 5px 0 0 -4px var(--accent);
+}
+
+/* Large full-row links already have enough geometry; use an inset marker. */
+
+
+/* Do not let the custom cursor hide text selection. */
+::selection{
+  background:var(--accent);
+  color:#000;
+}
+::-moz-selection{
+  background:var(--accent);
+  color:#000;
+}
+
+/* Reduced motion: preserve state changes, remove travel/inertia. */
+@media (prefers-reduced-motion:reduce){
+  *,
+  *::before,
+  *::after{
+    scroll-behavior:auto!important;
+  }
+
+  .mq,
+  .im-track,
+  .gl::before,
+  .gl::after{
+    animation:none!important;
+  }
+
+  button::before,
+  button[data-btn-label]::after,
+  .cf::before,
+  .yk::before,
+  .yk-fill-probe,
+  .bw::before,
+  .ud::after,
+  .tr>span,
+  .tr::after,
+  .ar i,
+  .ss-a,
+  .ss-b,
+  .us::after,
+  .us em{
+    transition-duration:.001ms!important;
+  }
+
+  .global-cursor{
+    transition:none!important;
+  }
+}
+
+/* High-contrast preference: strengthen separators and focus cues. */
+@media (prefers-contrast:more){
+  :root{
+    --line:color-mix(in srgb,var(--fg) 55%,transparent);
+    --mut:color-mix(in srgb,var(--fg) 78%,transparent);
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  summary:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible,
+  .yk:focus-visible{
+    box-shadow:
+      inset 0 0 0 2px var(--accent),
+      inset 7px 0 0 -5px var(--accent);
+  }
+}
+
+/* Windows/forced-colors: hand control back to system colors.
+   Custom cursor is disabled because its color assumptions no longer hold. */
+@media (forced-colors:active){
+  .global-cursor,
+  .global-cursor-black,
+  .global-cursor-ink,
+  .global-cursor-accent-ink{
+    display:none!important;
+  }
+
+  html,body,
+  a,button,
+  [role="button"],
+  input,textarea,select,label,summary{
+    cursor:auto!important;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  summary:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible,
+  .yk:focus-visible{
+    outline:2px solid CanvasText!important;
+    outline-offset:2px;
+    box-shadow:none!important;
+  }
+
+  .skip-link{
+    background:Canvas;
+    color:CanvasText;
+    border:2px solid CanvasText;
+  }
+}
+
+/* Coarse pointers: don't depend on hover and give compact controls a larger hit box. */
+@media (pointer:coarse){
+  header button,
+  .reset-demo{
+    min-width:44px;
+    min-height:44px;
+  }
+}
+
+/* Keep keyboard-focus styles only for keyboard-style focus, not mouse clicks. */
+:focus:not(:focus-visible){
+  outline:none;
+}
+
+
+.sr-only{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+
+
+/* Keyboard-focused hover demos should look intentional, not like browser chrome. */
+.ol:focus-visible,
+#sc:focus-visible,
+#spc:focus-visible,
+#vwc:focus-visible,
+#mq:focus-visible{
+  outline:none!important;
+}
+
+
+.mq-wrap{
+  overflow:visible;
+}
+
+@media (hover:none), (pointer:coarse){
+  .mq-wrap{
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:none;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x;
+  }
+  .mq-wrap::-webkit-scrollbar{display:none}
+
+  .mq{
+    animation:none!important;
+    width:max-content;
+    min-width:max-content;
+  }
+
+  /* Keep a little content cut off at the edge so the horizontal affordance
+     is visible without adding a permanent "SWIPE" label. */
+  .mq-wrap{
+    padding-right:12vw;
+  }
+}
+
+/* Optional one-time touch hint. Easy to remove after trying it. */
+@media (hover:none), (pointer:coarse) and (prefers-reduced-motion:no-preference){
+  .mq-wrap[data-nudge="ready"]{
+    scroll-behavior:smooth;
+  }
+}
+
+
+/* === MOBILE / TOUCH MARQUEE LAYOUT FIX ====================================
+   The marquee child is max-content. Without min-width:0 on the grid/flex
+   ancestors, that intrinsic width can enlarge the whole grid track on mobile,
+   while body overflow-x:hidden merely clips the resulting oversized page.
+   Keep the scroller itself constrained to the cell instead. */
+main,
+section,
+.fx,
+.cell,
+.mq-wrap{
+  min-width:0;
+}
+
+.mq-wrap{
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+}
+
+@media (hover:none), (pointer:coarse){
+  .mq-wrap{
+    width:100%;
+    max-width:100%;
+    padding-right:0;
+  }
+
+  .mq{
+    width:max-content;
+    min-width:max-content;
+    max-width:none;
+  }
+}
+
+
+/* === ENVIRONMENT MODE POC ==================================================
+   Layout and input are separate axes.
+
+   data-layout="mobile|desktop"
+     -> presentation/layout choice
+
+   data-input="touch|pointer"
+     -> interaction choice
+
+   This intentionally does NOT assume "desktop layout == mouse".
+============================================================================ */
+
+html[data-layout="desktop"] .env-mobile-only{display:none!important}
+html[data-layout="mobile"] .env-desktop-only{display:none!important}
+
+html[data-input="touch"] .env-pointer-only{display:none!important}
+html[data-input="pointer"] .env-touch-only{display:none!important}
+
+/* Keep the current custom cursor strictly capability-based. */
+html[data-input="touch"] .global-cursor,
+html[data-input="touch"] .global-cursor-black,
+html[data-input="touch"] .global-cursor-ink,
+html[data-input="touch"] .global-cursor-accent-ink{
+  display:none!important;
+}
+
+/* Small diagnostic HUD for this PoC. Remove once device behavior is verified. */
+.env-hud{
+  position:fixed;
+  right:10px;
+  bottom:10px;
+  z-index:2147483647;
+  width:min(320px,calc(100vw - 20px));
+  padding:10px 12px;
+  border:1px solid var(--line);
+  background:color-mix(in srgb,var(--bg) 94%,transparent);
+  color:var(--fg);
+  font:600 11px/1.45 var(--font);
+  letter-spacing:.02em;
+  backdrop-filter:blur(8px);
+}
+.env-hud b{font-weight:800}
+.env-hud code{font:inherit;color:var(--accent)}
+.env-hud .env-row{display:flex;justify-content:space-between;gap:12px}
+.env-hud .env-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.env-hud button{
+  padding:4px 7px;
+  min-height:0!important;
+  min-width:0!important;
+  font-size:10px;
+}
+
+/* Mobile layout choice for the PoC:
+   use layout mode, not pointer capability. */
+html[data-layout="mobile"] main,
+html[data-layout="mobile"] section,
+html[data-layout="mobile"] .fx,
+html[data-layout="mobile"] .cell{
+  min-width:0;
+}
+
+/* Desktop layout requested from a touch device: preserve desktop presentation,
+   but interactions stay touch-native. */
+html[data-layout="desktop"][data-input="touch"] .mq-wrap{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x;
+}
+html[data-layout="desktop"][data-input="touch"] .mq-wrap::-webkit-scrollbar{display:none}
+html[data-layout="desktop"][data-input="touch"] .mq{
+  animation:none!important;
+  width:max-content;
+  min-width:max-content;
+}
+
+
+
+/* === INPUT-CAPABILITY LAYER ===============================================
+   Layout mode and interaction mode are intentionally independent.
+============================================================================ */
+
+/* Touch interaction: no custom cursor, native swipe in scroll-jack areas. */
+html[data-input="touch"] .global-cursor,
+html[data-input="touch"] .global-cursor-black,
+html[data-input="touch"] .global-cursor-ink,
+html[data-input="touch"] .global-cursor-accent-ink{
+  display:none!important;
+}
+
+html[data-input="touch"] .mq-wrap{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:none;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x;
+  width:100%;
+  max-width:100%;
+}
+html[data-input="touch"] .mq-wrap::-webkit-scrollbar{display:none}
+html[data-input="touch"] .mq{
+  animation:none!important;
+  width:max-content;
+  min-width:max-content;
+  max-width:none;
+}
+
+/* Fine-pointer interaction: desktop cursor system may run even in a narrow
+   layout if a real fine primary pointer exists. */
+html[data-input="pointer"] .mq-wrap{
+  overflow:visible;
+}
+
+/* Hybrid devices: expose a class hook without forcing cursor behavior. */
+html[data-any-fine="true"][data-input="touch"]{
+  --hybrid-pointer-present:1;
+}
+
+/* === LAYOUT LAYER =========================================================
+   Layout can be switched independently from input via AUTO/MOBILE/DESKTOP.
+============================================================================ */
+html[data-layout="mobile"]{
+  --layout-gutter:clamp(14px,4vw,22px);
+}
+
+html[data-layout="desktop"]{
+  --layout-gutter:clamp(18px,2.2vw,42px);
+}
+
+/* Keep the prototype structurally safe when desktop layout is requested on a
+   touch phone. Presentation stays desktop, interaction remains touch-native. */
+html[data-layout="desktop"][data-input="touch"] main,
+html[data-layout="desktop"][data-input="touch"] section,
+html[data-layout="desktop"][data-input="touch"] .fx,
+html[data-layout="desktop"][data-input="touch"] .cell,
+html[data-layout="desktop"][data-input="touch"] .mq-wrap{
+  min-width:0;
+}
+
+/* Mobile presentation pass: same content/semantics, different density.
+   This deliberately avoids duplicating the DOM. */
+html[data-layout="mobile"] body{
+  padding-left:var(--layout-gutter);
+  padding-right:var(--layout-gutter);
+}
+
+html[data-layout="mobile"] section{
+  padding-block:clamp(34px,9vw,64px);
+}
+
+html[data-layout="mobile"] h2{
+  font-size:clamp(28px,9vw,48px);
+  line-height:.95;
+}
+
+html[data-layout="mobile"] .lead{
+  max-width:42rem;
+}
+
+html[data-layout="mobile"] .fx{
+  grid-template-columns:1fr!important;
+}
+
+html[data-layout="mobile"] .big{
+  font-size:clamp(34px,12vw,72px);
+}
+
+/* Desktop layout keeps the existing expressive scale. */
+html[data-layout="desktop"] .fx{
+  --env-layout-mode:desktop;
+}
+
+/* Manual mode switcher should remain testable on touch. */
+html[data-input="touch"] .env-hud button{
+  min-height:36px!important;
+}
+
+
+/* Cursor follower + morph is a special interaction demo.
+   Do not stack the generic button Circle Fill on top of it. */
+.morph-btn[data-morph]{
+  background:transparent!important;
+  overflow:visible;
+  isolation:auto;
+}
+.morph-btn[data-morph]::before,
+.morph-btn[data-morph]::after{
+  content:none!important;
+  display:none!important;
+}
+.morph-btn[data-morph]:is(:hover,:focus-visible){
+  border-color:var(--accent);
+}
+
+/* While the global cursor is morphed to this button, the clipped ink layer
+   handles local text contrast; don't globally recolor the label. */
+.morph-btn[data-morph].global-morph-hot{
+  color:var(--fg)!important;
+}
+
+</style>
+<style>
+@font-face{
+  font-family:"Source Han Sans JP VF";
+  src:url("https://raw.githubusercontent.com/adobe-fonts/source-han-sans/release/Variable/WOFF2/OTF/Subset/SourceHanSansJP-VF.otf.woff2") format("woff2");
+  font-style:normal;
+  font-weight:250 900;
+  font-display:swap;
+}
+</style>
+</head>
+<body>
+
+<aside class="env-hud" id="envHud" aria-label="Environment detection debug">
+  <div class="env-row"><span>layout</span><code id="envLayout">?</code></div>
+  <div class="env-row"><span>input</span><code id="envInput">?</code></div>
+  <div class="env-row"><span>UA mobile</span><code id="envUaMobile">?</code></div>
+  <div class="env-row"><span>viewport</span><code id="envViewport">?</code></div>
+  <div class="env-row"><span>primary</span><code id="envPointer">?</code></div>
+  <div class="env-row"><span>any fine</span><code id="envAnyFine">?</code></div>
+  <div class="env-row"><span>touch points</span><code id="envTouch">?</code></div>
+  <div class="env-row"><span>source</span><code id="envSource">?</code></div>
+  <div class="env-actions">
+    <button type="button" data-env-layout="auto">AUTO</button>
+    <button type="button" data-env-layout="mobile">MOBILE</button>
+    <button type="button" data-env-layout="desktop">DESKTOP</button>
+    <button type="button" id="envNudgeToggle" aria-pressed="false">NUDGE OFF</button>
+  </div>
+</aside>
+
+<a class="skip-link" href="#main-content">Skip to content</a>
+<i class="global-cursor" aria-hidden="true"></i>
+<i class="global-cursor-black" aria-hidden="true"></i>
+<div class="global-cursor-accent-ink" aria-hidden="true"><div class="global-cursor-accent-ink-inner"></div></div>
+<div class="global-cursor-ink" aria-hidden="true"><div class="global-cursor-ink-inner"></div></div>
+
+<header class="bar">
+<b>dot1245 motion/type lab</b>
+<div class="ctl">
+<small>Font</small>
+<span class="ctl" id="fontCtl"></span>
+<button id="th" type="button"></button>
+</div>
+<span id="envBadge" aria-hidden="true" style="font:600 10px/1 var(--font);opacity:.6;margin-left:auto"></span>
+</header>
+<main id="main-content"><section>
+<h2>Japanese variable-font comparison</h2>
+<p class="lead">
+    この版は、日本語と英語を同一ファミリーで扱えて、wght軸を連続的に動かせる候補だけを比較する。
+    上のFont切り替えはページ全体、Variable weightとEverything at onceも選択中フォントのwght軸に追従する。
+  </p>
+<div class="fx">
+<div class="cell w">
+<small>Mixed-script specimen</small>
+<div class="big">HELLO. こんにちは。<br/>BREAK. THINK. 再構築。</div>
+</div>
+</div>
+</section>
+<section>
+<h2>Type effects</h2>
+<p class="lead">定番の文字演出を並べたもの。マウスを乗せる、なぞる、スクロールするとそれぞれ動く。</p>
+<div class="fx">
+<div class="cell w"><small>Marquee: 常時流れる。ホバー中は縦スクロールを慣性つきで横移動へ変換（離れると通常スクロール）</small><div class="mq-wrap"><div class="mq big" id="mq" data-cursor-scroll-x tabindex="0" role="region" aria-label="Horizontal marquee; use Left and Right arrow keys when focused, or swipe on touch devices"></div></div></div>
+<div class="cell"><small>Outline to fill: ホバーで塗りつぶす</small><div class="big ol" tabindex="0">OUTLINE</div></div>
+<div class="cell"><small>Stagger reveal: 画面に入ると1文字ずつ現れる</small><div class="big st" id="st">BREAK. THINK. REBUILD.</div><button type="button" id="rp" class="reset-demo">もう一度</button></div>
+<div class="cell" id="vwc" tabindex="0"><small>Variable weight: ポインタに近い文字ほど太くなる</small><div class="big vw" id="vw">WEIGHT</div></div>
+<div class="cell"><small>Scramble: ホバーかタップで文字が入れ替わって戻る</small><div class="sc" id="sc" tabindex="0">I USE ARCH BTW</div></div>
+<div class="cell" id="spc" tabindex="0"><small>Cursor spotlight: なぞったところだけ光る</small><div class="big sp" id="sp">TORCH</div></div>
+<div class="cell"><small>RGB split glitch: ホバーかタップでずれる</small><div class="big"><span class="gl" data-t="GLITCH" tabindex="0">GLITCH</span></div></div>
+<div class="cell"><small>Typewriter: 打ち込んで、また消える</small><div class="tw" id="tw"><span class="tw-text"></span><span aria-hidden="true" class="tw-caret"></span></div></div>
+<div class="cell"><small>Scroll tracking: スクロール位置で字間が開く</small><div class="big sl" id="sl">SCROLL</div></div>
+<div class="cell"><small>Block wipe: ブロックが文字を覆って抜けていくと、文字が現れる</small><div class="big"><span class="wp rv"><span>REVEAL</span></span></div><button type="button" class="rpl reset-demo">もう一度</button></div>
+<div class="cell"><small>Highlight fill: ブロックで塗りつぶしたまま、その上に文字が乗る</small><div class="big"><span class="hl rv"><span>MARKER</span></span></div><button type="button" class="rpl reset-demo">もう一度</button></div>
+</div>
+</section>
+<section>
+<h2>Hover effects</h2>
+<p class="lead">メニューやボタンでよく見るホバー演出。Cursor followerとCursor morphは統合。候補をヤケクソで実装したあと、微妙だったものを削って整理中。タッチ端末にはホバーがないので、実際に使うときはタップ時の挙動も別に決めておく。</p>
+<div class="fx">
+<div class="cell"><small>Block wipe menu: 左から入って、右へ抜ける</small><nav class="stk"><a class="lk bw" href="#"><span>Works</span></a><a class="lk bw" href="#"><span>Fonts</span></a><a class="lk bw" href="#"><span>Contact</span></a></nav></div>
+<div class="cell"><small>Underline draw: 下線が左から伸びて、右へ抜ける</small><nav class="stk"><a class="lk ud" href="#">Works</a><a class="lk ud" href="#">Fonts</a><a class="lk ud" href="#">Contact</a></nav></div>
+<div class="cell"><small>Text roll: 文字が上に送られ、色違いの同じ文字に入れ替わる</small><nav class="stk"><a class="lk tr" data-t="Works" href="#"><span>Works</span></a><a class="lk tr" data-t="Fonts" href="#"><span>Fonts</span></a><a class="lk tr" data-t="Contact" href="#"><span>Contact</span></a></nav></div>
+<div class="cell"><small>Arrow shift: 矢印が動いて、文字に色がつく</small><nav class="stk"><a class="lk ar" href="#"><span>Read more</span><i>→</i></a><a class="lk ar" href="#"><span>Open the repo</span><i>→</i></a></nav></div>
+<div class="cell"><small>Dim siblings: 触れた項目以外が薄くなる</small><ul class="dm"><li><a href="#">Works</a></li><li><a href="#">Fonts</a></li><li><a href="#">Tools</a></li><li><a href="#">Contact</a></li></ul></div>
+<div class="cell"><small>Circle fill: 入った位置から円が広がって塗りつぶす</small><a class="cf" href="#" id="cf"><span>Hover me</span></a></div>
+<div class="cell morph-stage" id="morphStage">
+<small>Cursor follower + morph: グローバルFollowerがclickableに入るとその外形へ吸着して広がる</small>
+<i aria-hidden="true" class="morph-cursor"></i>
+<div class="morph-links">
+<a class="morph-link" data-morph="" href="#">Works →</a>
+<a class="morph-link" data-morph="" href="#">Open the repo ↗</a>
+<button type="button" class="morph-btn" data-morph="">Contact me</button>
+</div>
+</div>
+<div class="cell"><small>Split slide: 現在の文字が上へ抜け、次のレイヤーが下から入る</small><nav class="stk"><a class="ss" href="#"><span class="ss-a">WORKS</span><span class="ss-b">WORKS</span></a><a class="ss" href="#"><span class="ss-a">ABOUT</span><span class="ss-b">ABOUT</span></a></nav></div>
+<div class="cell"><small>Elastic width: hoverした項目だけ横幅が伸び、隣を押し退ける</small><div class="ewrow"><a class="ew" href="#">01 WORKS</a><a class="ew" href="#">02 LAB</a><a class="ew" href="#">03 INFO</a></div></div>
+<div class="cell"><small>Accordion nav: 横並びの区画がhoverした項目だけ大きく展開</small><nav class="acnav"><a href="#"><b>WORKS</b></a><a href="#"><b>LAB</b></a><a href="#"><b>ABOUT</b></a><a href="#" class="ac-long"><b>CONTACT</b></a></nav></div>
+<div class="cell"><small>Tracking burst: letter-spacingが一気に開く</small><a class="tb" href="#">EXPAND</a></div>
+<div class="cell"><small>Underline sweep + label shift: 下線と同時にメタ情報が滑り込む</small><nav><a class="us" href="#"><span>Project Zero</span><em>2026 / WEB</em></a><a class="us" href="#"><span>Typography Lab</span><em>VF / MOTION</em></a></nav></div>
+<div class="cell"><small>Clip reveal: 別色の文字をclip-pathで下から再描画</small><nav class="stk"><a class="cr" data-text="REVEAL" href="#">REVEAL</a><a class="cr" data-text="ARCHIVE" href="#">ARCHIVE</a></nav></div>
+<div class="cell"><small>Ghost duplicate: hoverすると複製文字が少し遅れて背後へずれる</small><nav class="stk"><a class="gd" data-text="GHOST" href="#">GHOST</a><a class="gd" data-text="OFFSET" href="#">OFFSET</a></nav></div>
+<div class="cell"><small>Inline marquee: 普通のリンクがhover中だけ無限スクロールに変わる</small><a class="im" href="#"><span class="im-track"><span>VIEW PROJECT →</span><span>VIEW PROJECT →</span><span>VIEW PROJECT →</span><span>VIEW PROJECT →</span></span></a></div>
+<div class="cell"><small>Hover scramble: hover時だけ文字が一瞬ノイズ化し、元の文字列へ収束する</small><nav class="stk"><a class="hs" data-hover-scramble="PROJECT" href="#">PROJECT</a><a class="hs" data-hover-scramble="ARCHIVE" href="#">ARCHIVE</a></nav></div>
+</div>
+</section>
+<section>
+<div class="everything-stage" id="everythingStage"><i aria-hidden="true" class="everything-cursor"></i><h2 data-text-cursor="">Everything at once</h2><p class="lead" data-text-cursor="">Stagger reveal、Dim siblings、Circle fill、Variable weight、Arrow shift、Reveal metadata、Cursor follower + morph を全部ひとつのリンクに載せたもの。画面に入ると文字が順に出て、触れた行だけが残り、入った位置から円形背景が広がり、ポインタ付近の文字が太くなって、メタ情報と矢印が出る。カーソルはサイト全体でFollower化し、通常は山吹の点、本文ではテキストカーソル、リンクやボタン上ではdifferenceで常に見える。Circle fillはそのままリンク側のhover演出として残る。</p><nav class="yks" id="yks">
+<a class="yk" href="#" style="--r:0"><span class="yt" data-t="Works"></span><span class="yr"><span class="ym">03 PROJECTS / 2026</span><i class="ya">→</i></span></a>
+<a class="yk" href="#" style="--r:1"><span class="yt" data-t="Fonts"></span><span class="yr"><span class="ym">VF / TYPOGRAPHY</span><i class="ya">→</i></span></a>
+<a class="yk" href="#" style="--r:2"><span class="yt" data-t="Tools"></span><span class="yr"><span class="ym">CODE / FLOSS / LAB</span><i class="ya">→</i></span></a>
+<a class="yk" href="#" style="--r:3"><span class="yt" data-t="Contact"></span><span class="yr"><span class="ym">MAIL / GITHUB</span><i class="ya">→</i></span></a>
+</nav><button type="button" id="yrp" class="reset-demo" style="">もう一度</button></div>
+</section>
+<section>
+<p class="note">M PLUS 1 / Noto Sans JP / Source Han Sans JP の日本語対応VFをページ全体で切り替えて、同じモーション表現を比較する。Hover effectsは既存8種に候補16種を追加したヤケクソ版。比較を邪魔しないようアクセントは山吹で固定。</p>
+</section>
+</main>
+<script>
+
+// === ENVIRONMENT DETECTION / LAYOUT POLICY =================================
+// No browser-specific branches.
+// AUTO chooses layout from UA-CH when available, then generic UA fallback.
+// Interaction capabilities are feature-detected independently.
+
+const ENV_LAYOUT_KEY='dot1245-layout-mode';
+
+const getLayoutOverride=()=>{
+  const params=new URLSearchParams(location.search);
+  const q=params.get('view');
+
+  if(q==='mobile' || q==='desktop') return {value:q,source:'url override'};
+  if(q==='auto') return {value:null,source:'url auto'};
+
+  const stored=localStorage.getItem(ENV_LAYOUT_KEY);
+  if(stored==='mobile' || stored==='desktop') {
+    return {value:stored,source:'manual override'};
+  }
+
+  return {value:null,source:'auto'};
+};
+
+const getMobileExperienceSignal=()=>{
+  if(navigator.userAgentData && typeof navigator.userAgentData.mobile==='boolean'){
+    return {
+      mobile:navigator.userAgentData.mobile,
+      source:'UA-CH'
+    };
+  }
+
+  const ua=navigator.userAgent || '';
+  const mobile=
+    /iPhone|iPod|Windows Phone|IEMobile|Opera Mini|webOS|BlackBerry|BB10/i.test(ua) ||
+    (/Android/i.test(ua) && /Mobile/i.test(ua));
+
+  return {
+    mobile,
+    source:'UA fallback'
+  };
+};
+
+const collectCapabilities=()=>{
+  const fine=matchMedia('(hover:hover) and (pointer:fine)').matches;
+  const coarse=matchMedia('(pointer:coarse)').matches;
+  const noHover=matchMedia('(hover:none)').matches;
+  const anyFine=matchMedia('(any-hover:hover) and (any-pointer:fine)').matches;
+  const anyCoarse=matchMedia('(any-pointer:coarse)').matches;
+  const narrow=matchMedia('(max-width:760px)').matches;
+  const touchPoints=navigator.maxTouchPoints || 0;
+
+  return {
+    fine,
+    coarse,
+    noHover,
+    anyFine,
+    anyCoarse,
+    touchPoints,
+    hasTouch:touchPoints>0,
+    narrow
+  };
+};
+
+const detectEnvironment=()=>{
+  const root=document.documentElement;
+  const override=getLayoutOverride();
+  const mobileSignal=getMobileExperienceSignal();
+  const caps=collectCapabilities();
+
+  const layout=override.value || (mobileSignal.mobile?'mobile':'desktop');
+  const source=override.value ? override.source : mobileSignal.source;
+  const input=caps.fine?'pointer':'touch';
+
+  root.dataset.layout=layout;
+  root.dataset.input=input;
+  root.dataset.layoutSource=source;
+  root.dataset.uaMobile=String(mobileSignal.mobile);
+  root.dataset.narrow=String(caps.narrow);
+  root.dataset.anyFine=String(caps.anyFine);
+  root.dataset.anyCoarse=String(caps.anyCoarse);
+  root.dataset.touch=String(caps.hasTouch);
+
+  const info={
+    layout,
+    input,
+    override:override.value || 'auto',
+    uaMobile:mobileSignal.mobile,
+    uaSource:mobileSignal.source,
+    width:innerWidth,
+    height:innerHeight,
+    source,
+    ...caps
+  };
+
+  updateEnvHud(info);
+  window.__dotEnv=info;
+  return info;
+};
+
+const updateEnvHud=info=>{
+  const $id=id=>document.getElementById(id);
+  if(!$id('envHud'))return;
+
+  $id('envLayout').textContent=`${info.layout} (${info.override})`;
+  $id('envInput').textContent=info.input;
+  $id('envUaMobile').textContent=`${info.uaMobile} / ${info.uaSource}`;
+  $id('envViewport').textContent=`${info.width}×${info.height} narrow=${info.narrow}`;
+  $id('envPointer').textContent=`fine=${info.fine} coarse=${info.coarse} hoverNone=${info.noHover}`;
+  $id('envAnyFine').textContent=String(info.anyFine);
+  $id('envTouch').textContent=String(info.touchPoints);
+  $id('envSource').textContent=info.source;
+};
+
+const applyLayoutPreference=mode=>{
+  if(mode==='auto') localStorage.removeItem(ENV_LAYOUT_KEY);
+  else if(mode==='mobile' || mode==='desktop') localStorage.setItem(ENV_LAYOUT_KEY,mode);
+
+  detectEnvironment();
+};
+
+document.querySelectorAll('[data-env-layout]').forEach(btn=>{
+  btn.addEventListener('click',()=>applyLayoutPreference(btn.dataset.envLayout));
+});
+
+// Re-evaluate capability-only state if pointer hardware changes.
+[
+  '(hover:hover) and (pointer:fine)',
+  '(pointer:coarse)',
+  '(hover:none)',
+  '(any-hover:hover) and (any-pointer:fine)',
+  '(any-pointer:coarse)',
+  '(max-width:760px)'
+].forEach(q=>{
+  const mq=matchMedia(q);
+  mq.addEventListener?.('change',detectEnvironment);
+});
+
+addEventListener('resize',()=>{
+  clearTimeout(window.__envResizeTimer);
+  window.__envResizeTimer=setTimeout(detectEnvironment,80);
+},{passive:true});
+
+detectEnvironment();
+
+const root=document.documentElement;
+  const override=localStorage.getItem(ENV_LAYOUT_KEY);
+  const browser=parseBrowserEnv();
+  const uaSignal=getUaMobileSignal();
+
+  const fine=matchMedia('(hover:hover) and (pointer:fine)').matches;
+  const anyFine=matchMedia('(any-hover:hover) and (any-pointer:fine)').matches;
+  const coarse=matchMedia('(pointer:coarse)').matches;
+  const noHover=matchMedia('(hover:none)').matches;
+  const narrow=matchMedia('(max-width:760px)').matches;
+
+  let layout,source;
+  if(override==='mobile' || override==='desktop'){
+    layout=override;
+    source='manual override';
+  }else{
+    layout=uaSignal.mobile?'mobile':'desktop';
+    source=uaSignal.source;
+  }
+
+  // Primary pointer drives the default interaction mode.
+  // anyFine is exposed independently so a future tablet+mouse policy can
+  // opt into pointer features without conflating layout and hardware.
+  const input=fine?'pointer':'touch';
+
+  root.dataset.layout=layout;
+  root.dataset.input=input;
+  root.dataset.browser=browser.key;
+  root.dataset.layoutSource=source;
+  root.dataset.uaMobile=String(uaSignal.mobile);
+  root.dataset.narrow=String(narrow);
+  root.dataset.anyFine=String(anyFine);
+
+  const info={
+    layout,
+    input,
+    override:override || 'auto',
+    browser:browser.name,
+    uaMobile:uaSignal.mobile,
+    uaSource:uaSignal.source,
+    uaRaw:uaSignal.raw,
+    narrow,
+    width:innerWidth,
+    height:innerHeight,
+    fine,
+    anyFine,
+    coarse,
+    noHover,
+    source,
+    ua:browser.ua
+  };
+
+  updateEnvHud(info);
+  return info;
+};
+
+const updateEnvHud=info=>{
+  const $id=id=>document.getElementById(id);
+  if(!$id('envHud'))return;
+
+  $id('envBrowser').textContent=info.browser;
+  $id('envLayout').textContent=`${info.layout} (${info.override})`;
+  $id('envInput').textContent=info.input;
+  $id('envUaMobile').textContent=`${info.uaMobile} / ${info.uaSource}`;
+  $id('envViewport').textContent=`${info.width}×${info.height} narrow=${info.narrow}`;
+  $id('envPointer').textContent=`fine=${info.fine} coarse=${info.coarse} hoverNone=${info.noHover}`;
+  $id('envAnyFine').textContent=String(info.anyFine);
+  $id('envSource').textContent=info.source;
+};
+
+document.querySelectorAll('[data-env-layout]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const mode=btn.dataset.envLayout;
+    if(mode==='auto')localStorage.removeItem(ENV_LAYOUT_KEY);
+    else localStorage.setItem(ENV_LAYOUT_KEY,mode);
+    detectEnvironment();
+  });
+});
+
+[
+  '(hover:hover) and (pointer:fine)',
+  '(any-hover:hover) and (any-pointer:fine)',
+  '(pointer:coarse)',
+  '(hover:none)',
+  '(max-width:760px)'
+].forEach(q=>{
+  const mq=matchMedia(q);
+  mq.addEventListener?.('change',detectEnvironment);
+});
+
+addEventListener('resize',()=>{
+  clearTimeout(window.__envResizeTimer);
+  window.__envResizeTimer=setTimeout(detectEnvironment,80);
+},{passive:true});
+
+detectEnvironment();
+
+const root=document.documentElement;
+  const override=localStorage.getItem(ENV_LAYOUT_KEY);
+
+  const uaSignal=getUaMobileSignal();
+  const fine=matchMedia('(hover:hover) and (pointer:fine)').matches;
+  const coarse=matchMedia('(pointer:coarse)').matches;
+  const noHover=matchMedia('(hover:none)').matches;
+  const narrow=matchMedia('(max-width:760px)').matches;
+
+  // Explicit user choice wins.
+  // AUTO intentionally follows browser identity first, not viewport width,
+  // so mobile browsers requesting "Desktop site" can select desktop layout.
+  let layout;
+  let source;
+  if(override==='mobile' || override==='desktop'){
+    layout=override;
+    source='manual override';
+  }else{
+    layout=uaSignal.mobile ? 'mobile' : 'desktop';
+    source=uaSignal.source;
+  }
+
+  // Input is always feature-detected. Desktop layout on a phone remains touch.
+  const input=fine ? 'pointer' : 'touch';
+
+  root.dataset.layout=layout;
+  root.dataset.input=input;
+  root.dataset.layoutSource=source;
+  root.dataset.uaMobile=String(uaSignal.mobile);
+  root.dataset.narrow=String(narrow);
+
+  const info={
+    layout,
+    input,
+    override:override || 'auto',
+    uaMobile:uaSignal.mobile,
+    uaSource:uaSignal.source,
+    narrow,
+    width:innerWidth,
+    height:innerHeight,
+    fine,
+    coarse,
+    noHover,
+    source
+  };
+
+  updateEnvHud(info);
+  return info;
+};
+
+const updateEnvHud=info=>{
+  const $id=id=>document.getElementById(id);
+  if(!$id('envHud'))return;
+
+  $id('envLayout').textContent=`${info.layout} (${info.override})`;
+  $id('envInput').textContent=info.input;
+  $id('envUaMobile').textContent=`${info.uaMobile} / ${info.uaSource}`;
+  $id('envViewport').textContent=`${info.width}×${info.height} narrow=${info.narrow}`;
+  $id('envPointer').textContent=`fine=${info.fine} coarse=${info.coarse} hoverNone=${info.noHover}`;
+  $id('envSource').textContent=info.source;
+};
+
+document.querySelectorAll('[data-env-layout]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const mode=btn.dataset.envLayout;
+    if(mode==='auto')localStorage.removeItem(ENV_LAYOUT_KEY);
+    else localStorage.setItem(ENV_LAYOUT_KEY,mode);
+    detectEnvironment();
+  });
+});
+
+// Re-evaluate when browser UI / orientation / attached pointing devices change.
+[
+  '(hover:hover) and (pointer:fine)',
+  '(pointer:coarse)',
+  '(hover:none)',
+  '(max-width:760px)'
+].forEach(q=>{
+  const mq=matchMedia(q);
+  mq.addEventListener?.('change',detectEnvironment);
+});
+
+addEventListener('resize',()=>{
+  clearTimeout(window.__envResizeTimer);
+  window.__envResizeTimer=setTimeout(detectEnvironment,80);
+},{passive:true});
+
+detectEnvironment();
+updateEnvHud(window.__dotEnv || detectEnvironment());
+
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const root=document.documentElement,rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const VF_FONTS=[
+  {
+    key:'mplus',
+    label:'M PLUS 1',
+    family:'"M PLUS 1",sans-serif',
+    min:100,max:900
+  },
+  {
+    key:'noto',
+    label:'Noto Sans JP',
+    family:'"Noto Sans JP",sans-serif',
+    min:100,max:900
+  },
+  {
+    key:'sourcehan',
+    label:'Source Han Sans JP',
+    family:'"Source Han Sans JP VF",sans-serif',
+    min:250,max:900
+  }
+];
+
+const fontCtl=$('#fontCtl');
+let activeFont=VF_FONTS[0];
+
+fontCtl.innerHTML=VF_FONTS.map((f,i)=>
+  `<button type="button" data-font="${f.key}" aria-pressed="${i===0}">${f.label}</button>`
+).join('');
+
+const applyFont=async f=>{
+  activeFont=f;
+  root.style.setProperty('--font',f.family);
+  $$('#fontCtl button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.font===f.key));
+  document.documentElement.dataset.font=f.key;
+  try{await document.fonts.ready}catch{}
+};
+
+fontCtl.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-font]');
+  if(!b)return;
+  const f=VF_FONTS.find(x=>x.key===b.dataset.font);
+  if(f)applyFont(f);
+});
+
+
+applyFont(activeFont);
+
+// Real typewriter: reveal characters, pause, erase, pause, repeat.
+// This is independent of glyph width, so proportional/VF font changes cannot break it.
+const tw=$('#tw'), twText=$('.tw-text',tw);
+const twFinal='$ sudo pacman -Syu';
+let twIndex=0, twDir=1;
+
+const typewriterTick=()=>{
+  if(rm){
+    twText.textContent=twFinal;
+    return;
+  }
+
+  twIndex+=twDir;
+  twIndex=Math.max(0,Math.min(twFinal.length,twIndex));
+  twText.textContent=twFinal.slice(0,twIndex);
+
+  let delay=twDir>0 ? 72 : 38;
+
+  if(twIndex===twFinal.length){
+    twDir=-1;
+    delay=1200;
+  }else if(twIndex===0 && twDir<0){
+    twDir=1;
+    delay=650;
+  }
+
+  setTimeout(typewriterTick,delay);
+};
+
+typewriterTick();
+
+
+
+
+
+let dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const setT=()=>{
+  root.dataset.theme=dark?'dark':'light';
+  const b=$('#th');
+  b.textContent=dark?'Dark':'Light';
+  b.setAttribute('aria-pressed',String(dark));
+  b.setAttribute('aria-label','Dark mode');
+};
+$('#th').onclick=()=>{dark=!dark;setT()};setT();
+
+const mt='SOMEHOW THIS ENTIRE MASTERPIECES ARE WRITED BY CODEX <i>✺</i> ';
+
+$('#mq').innerHTML=`<span>${mt}</span><span>${mt}</span>`;
+
+// Hover-only marquee scroll hijack.
+// While the pointer is over the marquee, vertical wheel / trackpad input
+// is converted into animation progress instead of scrolling the page.
+const mq=$('#mq');
+let mqCurrent=0;
+let mqTarget=0;
+const mqDuration=26;
+const mqSensitivity=0.010; // seconds of marquee travel per wheel pixel
+const mqEase=0.14;         // lower = softer / more inertial
+
+const wrapMq=v=>((v % mqDuration)+mqDuration)%mqDuration;
+
+mq.addEventListener('wheel',e=>{
+  if(rm)return;
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
+
+  e.preventDefault();
+
+  // Prefer whichever axis the device is actually sending more strongly.
+  const raw=Math.abs(e.deltaY)>=Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+
+  // Normalize line/page based wheel modes to roughly pixel-like values.
+  const unit=e.deltaMode===1 ? 16 : e.deltaMode===2 ? innerHeight : 1;
+  const d=raw*unit;
+
+  mqTarget=wrapMq(mqTarget-d*mqSensitivity);
+},{passive:false});
+
+mq.addEventListener('keydown',e=>{
+  if(rm)return;
+  if(e.key!=='ArrowLeft' && e.key!=='ArrowRight')return;
+  e.preventDefault();
+  const step=.7;
+  mqTarget=wrapMq(mqTarget+(e.key==='ArrowLeft'?step:-step));
+});
+
+(function marqueeSeekFrame(){
+  if(!rm){
+    // Interpolate across the shortest path around the looping 26s timeline.
+    let diff=mqTarget-mqCurrent;
+    if(diff>mqDuration/2) diff-=mqDuration;
+    if(diff<-mqDuration/2) diff+=mqDuration;
+
+    mqCurrent=wrapMq(mqCurrent+diff*mqEase);
+    mq.style.setProperty('--mq-delay',`${-mqCurrent}s`);
+  }
+  requestAnimationFrame(marqueeSeekFrame);
+})();
+
+
+const split=el=>{const ws=el.textContent.split(' ');el.textContent='';let i=0;ws.forEach((w,k)=>{const wd=document.createElement('span');wd.className='wd';[...w].forEach(ch=>{const s=document.createElement('span');s.className='c'+(ch==='.'?' dot':'');s.style.setProperty('--i',i++);s.textContent=ch;wd.append(s)});el.append(wd);if(k<ws.length-1)el.append(' ')})};
+
+const st=$('#st');split(st);
+new IntersectionObserver(es=>es.forEach(e=>st.classList.toggle('in',e.isIntersecting)),{threshold:.5}).observe(st);
+$('#rp').onclick=()=>{st.classList.remove('in');void st.offsetWidth;requestAnimationFrame(()=>st.classList.add('in'))};
+
+const vw=$('#vw');split(vw);const vc=$$('.c',vw);
+const makeWeightSpring=(host,chars,minW,getMaxW,radius)=>{
+  const state=chars.map(c=>({c,cur:minW,target:minW}));
+  const aim=x=>{
+    const maxW=typeof getMaxW==='function'?getMaxW():getMaxW;
+    state.forEach(o=>{
+      const r=o.c.getBoundingClientRect(),d=Math.abs(x-(r.left+r.width/2));
+      o.target=minW+(maxW-minW)*Math.max(0,1-d/radius);
+    });
+  };
+  host.addEventListener('pointermove',e=>aim(e.clientX));
+  host.addEventListener('pointerleave',()=>{
+    if(document.activeElement!==host)state.forEach(o=>o.target=minW);
+  });
+  host.addEventListener('focus',()=>{
+    const r=host.getBoundingClientRect();
+    aim(r.left+r.width/2);
+  });
+  host.addEventListener('blur',()=>state.forEach(o=>o.target=minW));
+  const tick=()=>{if(!rm)state.forEach(o=>{o.cur+=(o.target-o.cur)*.18;o.c.style.setProperty('--w',o.cur.toFixed(2))});requestAnimationFrame(tick)};tick();
+};
+const activeMaxWeight=()=>root.dataset.font==='mplus'?900:700;
+makeWeightSpring($('#vwc'),vc,200,activeMaxWeight,160);
+
+const sc=$('#sc'),fin=sc.textContent,G='!<>-_\\/[]{}=+*^?#0123456789';
+const run=()=>{let f=0;clearInterval(sc._t);sc._t=setInterval(()=>{f++;sc.textContent=[...fin].map((c,i)=>c===' '?' ':(i<f/2?c:G[Math.random()*G.length|0])).join('');if(f/2>=fin.length)clearInterval(sc._t)},35)};
+sc.addEventListener('pointerenter',run);sc.addEventListener('focus',run);sc.addEventListener('click',run);
+
+const sp=$('#sp'),spc=$('#spc');
+spc.addEventListener('pointermove',e=>{
+  const r=sp.getBoundingClientRect();
+  sp.style.setProperty('--x',e.clientX-r.left+'px');
+  sp.style.setProperty('--y',e.clientY-r.top+'px');
+});
+spc.addEventListener('pointerleave',()=>{
+  if(document.activeElement!==spc){
+    sp.style.setProperty('--x','-300px');
+    sp.style.setProperty('--y','-300px');
+  }
+});
+spc.addEventListener('focus',()=>{
+  const r=sp.getBoundingClientRect();
+  sp.style.setProperty('--x',r.width/2+'px');
+  sp.style.setProperty('--y',r.height/2+'px');
+});
+spc.addEventListener('blur',()=>{
+  sp.style.setProperty('--x','-300px');
+  sp.style.setProperty('--y','-300px');
+});
+
+const io=new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle('in',e.isIntersecting)),{threshold:.6});
+$$('.rv').forEach(el=>io.observe(el));
+const replayFx=el=>{
+  el.classList.remove('in');
+  // Two animation frames guarantee the browser paints the reset state first,
+  // so transition/keyframe state cannot collapse into a no-op.
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('in')));
+};
+$$('.rpl').forEach(b=>b.onclick=()=>{
+  const el=$('.rv',b.parentElement);
+  if(el)replayFx(el);
+});
+
+$$('a[href="#"]').forEach(a=>a.addEventListener('click',e=>e.preventDefault()));
+
+
+const cf=$('#cf'),cfp=e=>{const r=cf.getBoundingClientRect();cf.style.setProperty('--x',e.clientX-r.left+'px');cf.style.setProperty('--y',e.clientY-r.top+'px')};
+cf.addEventListener('pointerenter',cfp);cf.addEventListener('pointerleave',cfp);
+
+
+
+
+const yks=$('#yks');
+const mkL=(txt,o)=>{const l=document.createElement('span');l.className='yl'+(o?' yo':'');if(o)l.setAttribute('aria-hidden','true');[...txt].forEach((ch,i)=>{const s=document.createElement('span');s.className='c';s.style.setProperty('--i',i);s.textContent=ch;l.append(s)});return l};
+$$('.yk',yks).forEach(a=>{
+  const t=$('.yt',a),txt=t.dataset.t;
+  a.setAttribute('aria-label',txt);
+  t.append(mkL(txt));
+  makeWeightSpring(a,$$('.c',a),300,activeMaxWeight,120);
+
+  const fillProbe=document.createElement('span');
+  fillProbe.className='yk-fill-probe';
+  fillProbe.setAttribute('aria-hidden','true');
+  a.append(fillProbe);
+
+  // Cursor morph + Circle fill are the same object:
+  // capture the pointer entry point once, then grow that 12px dot into the row fill.
+  const setCircleOrigin=e=>{
+    const r=a.getBoundingClientRect();
+    a.style.setProperty('--cx',`${e.clientX-r.left}px`);
+    a.style.setProperty('--cy',`${e.clientY-r.top}px`);
+  };
+  a.addEventListener('pointerenter',setCircleOrigin);
+  a.addEventListener('focus',()=>{
+    a.style.setProperty('--cx','50%');
+    a.style.setProperty('--cy','50%');
+  });
+});
+
+
+new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle('in',e.isIntersecting)),{threshold:.3}).observe(yks);
+$('#yrp').onclick=()=>{yks.classList.remove('in');void yks.offsetWidth;requestAnimationFrame(()=>yks.classList.add('in'))};
+
+const sl=$('#sl');
+const onS=()=>{if(rm)return;const r=sl.getBoundingClientRect(),p=Math.min(1,Math.max(0,1-(r.top+r.height/2)/innerHeight));sl.style.setProperty('--ls',(-.05+p*.22)+'em')};
+addEventListener('scroll',onS,{passive:true});addEventListener('resize',onS);onS();
+
+
+
+
+
+
+// Mirror each button label into data-btn-label for the clipped contrast layer.
+const syncButtonLabel=b=>{
+  if(!(b instanceof HTMLButtonElement))return;
+  b.dataset.btnLabel=(b.textContent||'').trim();
+};
+
+$$('button').forEach(syncButtonLabel);
+
+const buttonLabelObserver=new MutationObserver(records=>{
+  const touched=new Set();
+  for(const rec of records){
+    const b=rec.target.nodeType===1
+      ? rec.target.closest?.('button')
+      : rec.target.parentElement?.closest?.('button');
+    if(b)touched.add(b);
+
+    rec.addedNodes?.forEach(node=>{
+      if(node.nodeType!==1)return;
+      if(node.matches?.('button'))touched.add(node);
+      node.querySelectorAll?.('button').forEach(x=>touched.add(x));
+    });
+  }
+  touched.forEach(syncButtonLabel);
+});
+
+buttonLabelObserver.observe(document.body,{
+  subtree:true,
+  childList:true,
+  characterData:true
+});
+
+// === GLOBAL CURSOR SYSTEM ===================================================
+const globalCursor=$('.global-cursor');
+const globalCursorBlack=$('.global-cursor-black');
+const globalCursorAccentInk=$('.global-cursor-accent-ink');
+const globalCursorAccentInkInner=$('.global-cursor-accent-ink-inner');
+const globalCursorInk=$('.global-cursor-ink');
+const globalCursorInkInner=$('.global-cursor-ink-inner');
+const fineGlobalPointer=document.documentElement.dataset.input==='pointer' && matchMedia('(hover:hover) and (pointer:fine)').matches;
+
+if(globalCursor && fineGlobalPointer){
+  let gx=-100,gy=-100,gtx=-100,gty=-100;
+  let gw=12,gh=12,gtw=12,gth=12;
+  let gr=999,gtr=999;
+  let visible=false;
+  let scrollTimer=null;
+  let transientScrollMode=null;
+  let paintTarget=null;
+  let paintCloneSource=null;
+  let accentFillTarget=null;
+  let accentInkCloneSource=null;
+
+  const stripIds=node=>{
+    if(node.nodeType!==1)return;
+    node.removeAttribute('id');
+    node.querySelectorAll?.('[id]').forEach(el=>el.removeAttribute('id'));
+  };
+
+  const choosePaintTarget=el=>{
+    return el.closest(
+      '[data-morph],[data-cursor-scroll-x],a,button,[role="button"],label,summary,'+
+      'p,h1,h2,h3,h4,h5,h6,small,li,dt,dd,blockquote,code,pre,'+
+      '.big,.sc,.tw,.sl,.ol,.gl,.vw,.sp,.hs,.im,.yt,.yk'
+    );
+  };
+
+  const setPaintTarget=el=>{
+    const next=choosePaintTarget(el);
+    if(next===paintTarget)return;
+    paintTarget=next;
+    paintCloneSource=null;
+    globalCursorInkInner.replaceChildren();
+  };
+
+  const refreshPaintClone=()=>{
+    if(!paintTarget || !paintTarget.isConnected){
+      globalCursorInk.style.opacity='0';
+      globalCursorInkInner.replaceChildren();
+      paintCloneSource=null;
+      return;
+    }
+
+    if(paintCloneSource!==paintTarget){
+      const clone=paintTarget.cloneNode(true);
+      stripIds(clone);
+      clone.removeAttribute?.('data-morph');
+      clone.querySelectorAll?.('[data-morph]').forEach(el=>el.removeAttribute('data-morph'));
+      clone.style.setProperty('animation','none','important');
+      clone.style.setProperty('transition','none','important');
+      clone.style.setProperty('transform','none','important');
+      globalCursorInkInner.replaceChildren(clone);
+      paintCloneSource=paintTarget;
+    }
+
+    const r=paintTarget.getBoundingClientRect();
+    const clone=globalCursorInkInner.firstElementChild;
+    if(!clone)return;
+
+    /* Match the live target box. getBoundingClientRect already includes the
+       marquee's current translated position, so the clone can stay animation-free. */
+    globalCursorInkInner.style.left=`${r.left-gx}px`;
+    globalCursorInkInner.style.top=`${r.top-gy}px`;
+    globalCursorInkInner.style.width=`${r.width}px`;
+    globalCursorInkInner.style.height=`${r.height}px`;
+
+    clone.style.width=`${r.width}px`;
+    clone.style.height=`${r.height}px`;
+    clone.style.margin='0';
+    clone.style.boxSizing='border-box';
+
+    globalCursorInk.style.opacity='1';
+  };
+
+  const clearModes=()=>{
+    globalCursor.classList.remove(
+      'is-text','is-interactive','is-scroll-x','is-drag','is-morph'
+    );
+  };
+
+  const isInteractive=el=>!!el.closest(
+    'a,button,[role="button"],input,textarea,select,label,summary'
+  );
+
+  const isTextual=el=>{
+    if(isInteractive(el))return false;
+    if(el.closest('[data-cursor-scroll-x],[data-cursor-scroll-y],[data-cursor-drag],[draggable="true"]'))return false;
+    return !!el.closest(
+      'p,h1,h2,h3,h4,h5,h6,small,span:not(.global-cursor),li,dt,dd,blockquote,code,pre'
+    );
+  };
+
+  const setShape=(w,h,r)=>{
+    gtw=w; gth=h; gtr=r;
+  };
+
+  const setDot=e=>{
+    setShape(12,12,999);
+    gtx=e.clientX-6;
+    gty=e.clientY-6;
+  };
+
+  const setText=e=>{
+    const target=e.target.closest(
+      'p,h1,h2,h3,h4,h5,h6,small,span,li,dt,dd,blockquote,code,pre'
+    );
+    const cs=target?getComputedStyle(target):null;
+    const fs=cs?(parseFloat(cs.fontSize)||16):16;
+    const lh=cs?parseFloat(cs.lineHeight):NaN;
+    const h=Number.isFinite(lh)?Math.min(lh,fs*1.35):fs*1.18;
+
+    setShape(3,Math.max(14,h),2);
+    gtx=e.clientX-1.5;
+    gty=e.clientY-gth/2;
+    globalCursor.classList.add('is-text');
+  };
+
+  const setScrollX=e=>{
+    setShape(42,22,999);
+    gtx=e.clientX-21;
+    gty=e.clientY-11;
+    globalCursor.classList.add('is-scroll-x');
+  };
+
+
+  const setDrag=e=>{
+    setShape(38,38,999);
+    gtx=e.clientX-19;
+    gty=e.clientY-19;
+    globalCursor.classList.add('is-drag');
+  };
+
+  let morphTarget=null;
+
+  const clearMorphTarget=()=>{
+    morphTarget?.classList.remove('global-morph-hot');
+    morphTarget=null;
+  };
+
+  const setMorphTarget=el=>{
+    const r=el.getBoundingClientRect();
+    const pad=6;
+    setShape(r.width+pad*2,r.height+pad*2,Math.max(6,(parseFloat(getComputedStyle(el).borderTopLeftRadius)||0)+pad));
+    gtx=r.left-pad;
+    gty=r.top-pad;
+
+    if(morphTarget!==el){
+      clearMorphTarget();
+      morphTarget=el;
+      morphTarget.classList.add('global-morph-hot');
+    }
+    globalCursor.classList.add('is-morph');
+  };
+
+  const resolveMode=e=>{
+    clearModes();
+
+    // Wheel input temporarily overrides hover semantics.
+    if(transientScrollMode==='x'){
+      setScrollX(e);
+      return;
+    }
+    if(e.target.closest('[data-cursor-drag],[draggable="true"]')){
+      clearMorphTarget();
+      setDrag(e);
+      return;
+    }
+
+    if(e.target.closest('[data-cursor-scroll-x]')){
+      clearMorphTarget();
+      setScrollX(e);
+      return;
+    }
+
+
+    const morph=e.target.closest('[data-morph]');
+    if(morph){
+      setMorphTarget(morph);
+      return;
+    }
+
+    clearMorphTarget();
+
+    if(isInteractive(e.target)){
+      globalCursor.classList.add('is-interactive');
+      setDot(e);
+      return;
+    }
+
+    if(isTextual(e.target)){
+      setText(e);
+      return;
+    }
+
+    setDot(e);
+  };
+
+  const moveGlobal=e=>{
+    if(e.pointerType && e.pointerType!=='mouse' && e.pointerType!=='pen')return;
+
+    accentFillTarget=e.target.closest('button:not([data-morph]):hover,.cf:hover,.yk:hover');
+
+    if(!visible){
+      visible=true;
+      globalCursor.style.opacity='1';
+      gx=e.clientX-6;
+      gy=e.clientY-6;
+    }
+
+    setPaintTarget(e.target);
+    resolveMode(e);
+  };
+
+  addEventListener('pointermove',moveGlobal,{passive:true});
+  addEventListener('pointerenter',moveGlobal,{passive:true});
+
+  document.documentElement.addEventListener('mouseleave',()=>{
+    visible=false;
+    globalCursor.style.opacity='0';
+    globalCursorBlack.style.opacity='0';
+    globalCursorAccentInk.style.opacity='0';
+    globalCursorInk.style.opacity='0';
+    paintTarget=null;
+    paintCloneSource=null;
+    globalCursorInkInner.replaceChildren();
+    clearMorphTarget();
+  });
+
+  // Only explicit scroll-jack regions get a scroll cursor.
+  // Ordinary page scrolling leaves the cursor in its normal semantic mode.
+  addEventListener('wheel',e=>{
+    if(!visible)return;
+
+    const hijack=e.target.closest('[data-cursor-scroll-x]');
+    if(!hijack)return;
+
+    transientScrollMode='x';
+    clearTimeout(scrollTimer);
+    scrollTimer=setTimeout(()=>{
+      transientScrollMode=null;
+    },220);
+
+    const fakeEvent={clientX:gx+gw/2,clientY:gy+gh/2,target:e.target};
+    clearModes();
+    setScrollX(fakeEvent);
+  },{passive:true});
+
+  // Re-use pointer-entry / exit positions for button Circle fills everywhere.
+  const setButtonOrigin=(b,e)=>{
+    const r=b.getBoundingClientRect();
+    const x=Math.max(0,Math.min(r.width,e.clientX-r.left));
+    const y=Math.max(0,Math.min(r.height,e.clientY-r.top));
+    b.style.setProperty('--bx',`${x}px`);
+    b.style.setProperty('--by',`${y}px`);
+  };
+
+  document.addEventListener('pointerover',e=>{
+    const b=e.target.closest('button:not([data-morph])');
+    if(!b)return;
+    if(e.relatedTarget && b.contains(e.relatedTarget))return;
+    setButtonOrigin(b,e);
+  });
+
+  document.addEventListener('pointerout',e=>{
+    const b=e.target.closest('button:not([data-morph])');
+    if(!b)return;
+    if(e.relatedTarget && b.contains(e.relatedTarget))return;
+    setButtonOrigin(b,e);
+  });
+
+
+  const readAccentFillGeometry=()=>{
+    const el=accentFillTarget;
+    if(!el || !el.isConnected)return null;
+
+    const r=el.getBoundingClientRect();
+
+    if(el.matches('.yk')){
+      const probe=el.querySelector(':scope > .yk-fill-probe');
+      if(!probe)return null;
+      const pr=probe.getBoundingClientRect();
+      if(pr.width<=0.5)return null;
+
+      return {
+        el,
+        radius:pr.width/2,
+        localX:pr.left+pr.width/2-gx,
+        localY:pr.top+pr.height/2-gy
+      };
+    }
+
+    const ps=getComputedStyle(el,'::before');
+    const width=parseFloat(ps.width)||0;
+    const opacity=parseFloat(ps.opacity);
+    if(width<=0.5 || (Number.isFinite(opacity) && opacity<=0.001))return null;
+
+    const cs=getComputedStyle(el);
+    let cx=r.width/2, cy=r.height/2;
+
+    if(el.matches('button')){
+      cx=parseFloat(cs.getPropertyValue('--bx')) || cx;
+      cy=parseFloat(cs.getPropertyValue('--by')) || cy;
+    }else if(el.matches('.cf')){
+      cx=parseFloat(cs.getPropertyValue('--x')) || cx;
+      cy=parseFloat(cs.getPropertyValue('--y')) || cy;
+    }
+
+    return {
+      el,
+      radius:width/2,
+      localX:r.left+cx-gx,
+      localY:r.top+cy-gy
+    };
+  };
+
+  const refreshAccentInkClone=()=>{
+    if(!globalCursorAccentInkInner)return;
+    const target=accentFillTarget || paintTarget;
+    if(!target || !target.isConnected){
+      globalCursorAccentInkInner.replaceChildren();
+      accentInkCloneSource=null;
+      return;
+    }
+
+    if(accentInkCloneSource!==target){
+      const clone=target.cloneNode(true);
+      stripIds(clone);
+      clone.removeAttribute?.('data-morph');
+      clone.querySelectorAll?.('[data-morph]').forEach(el=>el.removeAttribute('data-morph'));
+      clone.style.setProperty('animation','none','important');
+      clone.style.setProperty('transition','none','important');
+      clone.style.setProperty('transform','none','important');
+      clone.querySelectorAll('*').forEach(node=>{
+        node.style.setProperty('animation','none','important');
+        node.style.setProperty('transition','none','important');
+      });
+      globalCursorAccentInkInner.replaceChildren(clone);
+      accentInkCloneSource=target;
+    }
+
+    const r=target.getBoundingClientRect();
+    const clone=globalCursorAccentInkInner.firstElementChild;
+    if(!clone)return;
+
+    globalCursorAccentInkInner.style.left=`${r.left-gx}px`;
+    globalCursorAccentInkInner.style.top=`${r.top-gy}px`;
+    globalCursorAccentInkInner.style.width=`${r.width}px`;
+    globalCursorAccentInkInner.style.height=`${r.height}px`;
+
+    clone.style.width=`${r.width}px`;
+    clone.style.height=`${r.height}px`;
+    clone.style.margin='0';
+    clone.style.boxSizing='border-box';
+  };
+
+  const updateAccentCursorContrast=()=>{
+    if(!globalCursorBlack || !globalCursorAccentInk)return;
+
+    const g=readAccentFillGeometry();
+    if(!visible || !g){
+      globalCursorBlack.style.opacity='0';
+      globalCursorBlack.style.clipPath='circle(0 at 0 0)';
+      globalCursorAccentInk.style.opacity='0';
+      globalCursorAccentInk.style.clipPath='circle(0 at 0 0)';
+      return;
+    }
+
+    const clip=`circle(${g.radius}px at ${g.localX}px ${g.localY}px)`;
+
+    // Over the Yamabuki fill, the cursor body becomes black.
+    globalCursorBlack.style.opacity='1';
+    globalCursorBlack.style.clipPath=clip;
+
+    // But where that black cursor crosses the fill's black text/glyphs,
+    // redraw those glyphs in Yamabuki above it.
+    globalCursorAccentInk.style.opacity='1';
+    globalCursorAccentInk.style.clipPath=clip;
+    refreshAccentInkClone();
+  };
+
+  (function globalCursorFrame(){
+    const pos=.30,shape=.26;
+    gx+=(gtx-gx)*pos;
+    gy+=(gty-gy)*pos;
+    gw+=(gtw-gw)*shape;
+    gh+=(gth-gh)*shape;
+    gr+=(gtr-gr)*shape;
+
+    globalCursor.style.transform=`translate3d(${gx}px,${gy}px,0)`;
+    globalCursor.style.width=`${gw}px`;
+    globalCursor.style.height=`${gh}px`;
+    globalCursor.style.borderRadius=`${gr}px`;
+
+    globalCursorBlack.style.transform=`translate3d(${gx}px,${gy}px,0)`;
+    globalCursorBlack.style.width=`${gw}px`;
+    globalCursorBlack.style.height=`${gh}px`;
+    globalCursorBlack.style.borderRadius=`${gr}px`;
+
+    globalCursorAccentInk.style.transform=`translate3d(${gx}px,${gy}px,0)`;
+    globalCursorAccentInk.style.width=`${gw}px`;
+    globalCursorAccentInk.style.height=`${gh}px`;
+    globalCursorAccentInk.style.borderRadius=`${gr}px`;
+
+    updateAccentCursorContrast();
+
+    globalCursorInk.style.transform=`translate3d(${gx}px,${gy}px,0)`;
+    globalCursorInk.style.width=`${gw}px`;
+    globalCursorInk.style.height=`${gh}px`;
+    globalCursorInk.style.borderRadius=`${gr}px`;
+
+    refreshPaintClone();
+
+    requestAnimationFrame(globalCursorFrame);
+  })();
+}
+
+
+// Touch-only first-view nudge for the marquee.
+// This is intentionally isolated so it can be deleted in one block if it feels gimmicky.
+const mqWrap=$('.mq-wrap');
+if(mqWrap && document.documentElement.dataset.input==='touch' && getNudgeEnabled()){
+  const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if(!reduceMotion){
+    const nudgeMq=()=>{
+      if(mqWrap.dataset.nudged==='1')return;
+      mqWrap.dataset.nudged='1';
+      mqWrap.dataset.nudge='ready';
+
+      requestAnimationFrame(()=>{
+        mqWrap.scrollTo({left:60,behavior:'smooth'});
+        setTimeout(()=>{
+          mqWrap.scrollTo({left:0,behavior:'smooth'});
+          setTimeout(()=>mqWrap.removeAttribute('data-nudge'),420);
+        },420);
+      });
+    };
+
+    const mqNudgeObserver=new IntersectionObserver(entries=>{
+      for(const entry of entries){
+        if(entry.isIntersecting){
+          nudgeMq();
+          mqNudgeObserver.disconnect();
+          break;
+        }
+      }
+    },{threshold:.55});
+
+    mqNudgeObserver.observe(mqWrap);
+  }
+}
+
+
+// Optional touch marquee hint. Default is OFF.
+// Toggle only affects the hint animation; native swipe remains available.
+const NUDGE_KEY='dot1245-marquee-nudge';
+
+const getNudgeEnabled=()=>localStorage.getItem(NUDGE_KEY)==='1';
+
+const updateNudgeButton=()=>{
+  const b=document.getElementById('envNudgeToggle');
+  if(!b)return;
+  const on=getNudgeEnabled();
+  b.textContent=on?'NUDGE ON':'NUDGE OFF';
+  b.setAttribute('aria-pressed',String(on));
+};
+
+document.getElementById('envNudgeToggle')?.addEventListener('click',()=>{
+  localStorage.setItem(NUDGE_KEY,getNudgeEnabled()?'0':'1');
+  updateNudgeButton();
+});
+
+updateNudgeButton();
+
+
+
+const envBadgeObserver=new MutationObserver(()=>{
+  const b=document.getElementById('envBadge');
+  if(!b)return;
+  const r=document.documentElement;
+  b.textContent=`${(r.dataset.layout||'?').toUpperCase()} / ${(r.dataset.input||'?').toUpperCase()}`;
+});
+envBadgeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-layout','data-input']});
+envBadgeObserver.takeRecords();
+{
+  const b=document.getElementById('envBadge');
+  if(b){
+    const r=document.documentElement;
+    b.textContent=`${(r.dataset.layout||'?').toUpperCase()} / ${(r.dataset.input||'?').toUpperCase()}`;
+  }
+}
+
+// === YAKESUKU HOVER PACK ===================================================
+
+// Prevent demo links from jumping the page while testing.
+$$('a[href="#"]').forEach(a=>a.addEventListener('click',e=>e.preventDefault()));
+
+
+// Hover Scramble: briefly randomize characters, then converge back to the source string.
+const HS_CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%?*+=<>/';
+
+$$('[data-hover-scramble]').forEach(el=>{
+  const original=el.dataset.hoverScramble;
+  let runId=0;
+
+  const runScramble=()=>{
+    const id=++runId;
+    el.classList.add('scrambling');
+
+    const totalFrames=12;
+    let frame=0;
+
+    const tick=()=>{
+      if(id!==runId)return;
+
+      const settle=Math.floor((frame/totalFrames)*original.length);
+      el.textContent=[...original].map((ch,i)=>{
+        if(ch===' ')return ' ';
+        if(i<settle)return ch;
+        return HS_CHARS[Math.floor(Math.random()*HS_CHARS.length)];
+      }).join('');
+
+      frame++;
+
+      if(frame<=totalFrames){
+        setTimeout(tick,34);
+      }else{
+        el.textContent=original;
+        el.classList.remove('scrambling');
+      }
+    };
+
+    tick();
+  };
+
+  el.addEventListener('pointerenter',runScramble);
+  el.addEventListener('focus',runScramble);
+  el.addEventListener('pointerleave',()=>{
+    runId++;
+    el.textContent=original;
+    el.classList.remove('scrambling');
+  });
+  el.addEventListener('blur',()=>{
+    runId++;
+    el.textContent=original;
+    el.classList.remove('scrambling');
+  });
+});
+
+</script>
+</body>
+</html>
