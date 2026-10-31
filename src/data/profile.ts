@@ -69,6 +69,6 @@ export const contacts: Contact[] = [
     label: "Steam",
     icon: "steam",
     note: "@dot-1245",
-    href: "https://steamcommunity.com/profiles/76561199340967978/",
+    href: "https://steamcommunity.com/id/dot1245/",
   },
 ];
