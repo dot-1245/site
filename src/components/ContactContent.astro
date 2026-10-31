@@ -1,0 +1,15 @@
+---
+import ContactIcon from './ContactIcon.astro';
+import type { ContactIconName } from '../data/profile';
+interface Props {
+  contact: { label: string; icon: ContactIconName; note: string };
+  base?: boolean;
+}
+const { contact, base = false } = Astro.props;
+---
+<div class:list={["contact-content", { "contact-base": base }]} >
+<ContactIcon icon={contact.icon} />
+<span class="contact-name" aria-label={contact.label}><span aria-hidden="true">{[...contact.label].map((char, i) => <span class="weight-char" style={`--i:${i}`}>{char}</span>)}</span></span>
+{contact.note && <span class="contact-meta">{contact.note}</span>}
+<span class="contact-arrow" aria-hidden="true">↗</span>
+</div>

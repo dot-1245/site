@@ -26,18 +26,28 @@ if (!reducedMotion.matches && "IntersectionObserver" in window) {
 }
 
 document.querySelectorAll<HTMLElement>(".contact-link").forEach((link) => {
-  const chars = [...link.querySelectorAll<HTMLElement>(".weight-char")];
-  link.addEventListener("pointerenter", (event) => {
+  const chars = [
+    ...link.querySelectorAll<HTMLElement>(".contact-base .weight-char"),
+  ];
+  const paintedChars = [
+    ...link.querySelectorAll<HTMLElement>(".contact-ink .weight-char"),
+  ];
+  const setCircleOrigin = (event: PointerEvent) => {
     const box = link.getBoundingClientRect();
-    link.style.setProperty("--cx", `${event.clientX - box.left}px`);
-    link.style.setProperty("--cy", `${event.clientY - box.top}px`);
-  });
+    const x = Math.max(0, Math.min(box.width, event.clientX - box.left));
+    const y = Math.max(0, Math.min(box.height, event.clientY - box.top));
+    link.style.setProperty("--cx", `${x}px`);
+    link.style.setProperty("--cy", `${y}px`);
+  };
+  link.addEventListener("pointerenter", setCircleOrigin);
   let frame = 0;
   let pointerX = 0;
   const resetWeight = () => {
     cancelAnimationFrame(frame);
     frame = 0;
-    chars.forEach((char) => char.style.removeProperty("--w"));
+    [...chars, ...paintedChars].forEach((char) =>
+      char.style.removeProperty("--w"),
+    );
   };
   link.addEventListener("pointermove", (event) => {
     if (reducedMotion.matches || event.pointerType === "touch") return;
@@ -53,18 +63,21 @@ document.querySelectorAll<HTMLElement>(".contact-link").forEach((link) => {
       });
       chars.forEach((char, index) => {
         const distance = Math.abs(pointerX - centers[index]);
-        char.style.setProperty(
-          "--w",
-          String(450 + 400 * Math.max(0, 1 - distance / 140)),
-        );
+        const weight = String(450 + 400 * Math.max(0, 1 - distance / 140));
+        char.style.setProperty("--w", weight);
+        paintedChars[index]?.style.setProperty("--w", weight);
       });
     });
   });
-  link.addEventListener("pointerleave", resetWeight);
+  link.addEventListener("pointerleave", (event) => {
+    setCircleOrigin(event);
+    resetWeight();
+  });
   reducedMotion.addEventListener("change", () => {
     if (reducedMotion.matches) resetWeight();
   });
   link.addEventListener("focus", () => {
+    if (!link.matches(":focus-visible")) return;
     link.style.setProperty("--cx", "50%");
     link.style.setProperty("--cy", "50%");
   });

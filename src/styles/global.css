@@ -528,6 +528,7 @@ button:focus-visible {
   border-top: 1px solid var(--line);
 }
 .contact-link {
+  --contact-fill-duration: 0.65s;
   position: relative;
   isolation: isolate;
   overflow: clip;
@@ -536,30 +537,34 @@ button:focus-visible {
   gap: 24px;
   border-bottom: 1px solid var(--line);
   padding: 14px 20px;
-  transition:
-    opacity 0.3s,
-    color 0.3s;
+  transition: opacity 0.3s;
   --cx: 50%;
   --cy: 50%;
 }
-.contact-link::before {
-  content: "";
-  z-index: -1;
+.contact-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+}
+.contact-ink {
   position: absolute;
-  left: var(--cx);
-  top: var(--cy);
-  width: 0;
-  aspect-ratio: 1;
-  border-radius: 50%;
+  inset: 0;
+  padding: inherit;
+  pointer-events: none;
   background: var(--accent);
-  transform: translate(-50%, -50%);
-  transition: width 0.65s cubic-bezier(0.65, 0.05, 0, 1);
-}
-.contact-link:is(:hover, :focus-visible)::before {
-  width: 250%;
-}
-.contact-link:is(:hover, :focus-visible) {
   color: #080808;
+  clip-path: circle(0% at var(--cx) var(--cy));
+  transition: clip-path var(--contact-fill-duration)
+    cubic-bezier(0.65, 0.05, 0, 1);
+}
+.contact-link:is(:hover, :focus-visible) .contact-ink {
+  clip-path: circle(150% at var(--cx) var(--cy));
+}
+.contact-ink .contact-icon,
+.contact-ink .contact-meta {
+  color: inherit;
 }
 .contact-link:focus-visible {
   outline-offset: -3px;
@@ -570,10 +575,6 @@ button:focus-visible {
   height: auto;
   flex-shrink: 0;
   color: var(--accent);
-  transition: color 0.3s;
-}
-.contact-link:is(:hover, :focus-visible) .contact-icon {
-  color: #080808;
 }
 .contact-name {
   transition: opacity 0.3s;
@@ -592,12 +593,9 @@ button:focus-visible {
   font-size: 11px;
   letter-spacing: 0.03em;
   color: var(--mut);
-  transition:
-    color 0.3s,
-    transform 0.3s;
+  transition: transform 0.3s;
 }
 .contact-link:is(:hover, :focus-visible) .contact-meta {
-  color: #080808;
   transform: translateX(-8px);
 }
 .contact-arrow {
@@ -686,6 +684,7 @@ footer > a:last-child {
   opacity: 0;
   overflow: hidden;
   will-change: transform;
+  user-select: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .cursor {
@@ -782,6 +781,8 @@ footer > a:last-child {
   }
   .contact-link {
     padding: 16px 8px;
+  }
+  .contact-content {
     gap: 12px;
     flex-wrap: wrap;
   }
@@ -886,7 +887,7 @@ footer > a:last-child {
   .cursor-active button {
     cursor: auto;
   }
-  .contact-link::before {
+  .contact-ink {
     display: none;
   }
   .contact-link:is(:hover, :focus-visible),
@@ -909,7 +910,8 @@ footer > a:last-child {
 }
 .cursor-ink,
 .cursor-ink * {
-  color: #080808 !important;
+  color: #000 !important;
+  text-decoration-color: #000 !important;
   -webkit-text-stroke: 0 !important;
   animation: none !important;
   transition: none !important;
@@ -926,5 +928,63 @@ footer > a:last-child {
 .cursor-ink::after,
 .cursor-ink *::before,
 .cursor-ink *::after {
+  content: none !important;
+}
+
+/* Exact contrast over selection rectangles and the live Contact fill mask. */
+.cursor-logo {
+  position: absolute;
+  color: #000;
+  pointer-events: none;
+}
+.cursor-decoration {
+  position: absolute;
+  background: #000;
+  pointer-events: none;
+}
+.cursor-selection {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+.cursor-fill {
+  position: absolute;
+  background: #000;
+  pointer-events: none;
+}
+.cursor-selection-ink,
+.cursor-fill-ink {
+  position: absolute;
+  pointer-events: none;
+}
+.cursor-selection-ink,
+.cursor-selection-ink *,
+.cursor-fill-ink,
+.cursor-fill-ink * {
+  color: var(--accent) !important;
+  text-decoration-color: var(--accent) !important;
+  -webkit-text-stroke: 0 !important;
+  animation: none !important;
+  transition: none !important;
+}
+.cursor-selection-ink > *,
+.cursor-fill-ink > * {
+  margin: 0 !important;
+  transform: none !important;
+}
+.cursor-selection-ink .hero-line,
+.cursor-fill-ink .hero-line {
+  overflow: visible;
+}
+.cursor-selection-ink::before,
+.cursor-selection-ink::after,
+.cursor-selection-ink *::before,
+.cursor-selection-ink *::after,
+.cursor-fill-ink::before,
+.cursor-fill-ink::after,
+.cursor-fill-ink *::before,
+.cursor-fill-ink *::after {
   content: none !important;
 }

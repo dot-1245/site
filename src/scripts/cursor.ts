@@ -14,8 +14,12 @@ let width = 12,
 let shown = false;
 let paintTarget: HTMLElement | null = null;
 let paintDirty = false;
+let paintVersion = 0;
+let selectionDirty = true;
+let selectionRects: DOMRect[] = [];
 const sourceObserver = new MutationObserver(() => {
   paintDirty = true;
+  selectionDirty = true;
   if (shown && !frame) frame = requestAnimationFrame(draw);
 });
 
@@ -31,7 +35,7 @@ function refreshPaint() {
   const copies = [clone, ...clone.querySelectorAll("*")];
   clone
     .querySelectorAll(
-      "script,style,link,iframe,object,embed,img,audio,video,source",
+      "script,style,link,iframe,object,embed,img,audio,video,source,.contact-ink",
     )
     .forEach((node) => node.remove());
   // The site's paint targets contain text and inline SVG only. Never retain
@@ -82,11 +86,202 @@ function refreshPaint() {
     );
   });
   ink.append(clone);
+  selectionInk.replaceChildren(clone.cloneNode(true));
+  paintVersion++;
 }
 const ink = document.createElement("div");
 ink.className = "cursor-ink";
 ink.inert = true;
-cursor?.append(ink);
+const selectionMask = document.createElement("div");
+selectionMask.className = "cursor-selection";
+const selectionInk = document.createElement("div");
+selectionInk.className = "cursor-selection-ink";
+selectionInk.inert = true;
+selectionMask.append(selectionInk);
+cursor?.append(ink, selectionMask);
+const fillLayers = new Map<
+  HTMLElement,
+  { mask: HTMLDivElement; ink: HTMLDivElement; version: number }
+>();
+const logoLayers = new Map<SVGSVGElement, SVGSVGElement>();
+const decorationLayers = new Map<HTMLElement, HTMLDivElement>();
+if (cursor) cursor.inert = true;
+
+function updateContrast() {
+  if (!cursor) return false;
+  if (selectionDirty) {
+    selectionRects = [];
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      for (let i = 0; i < selection.rangeCount; i++) {
+        selectionRects.push(...selection.getRangeAt(i).getClientRects());
+      }
+    }
+    selectionDirty = false;
+  }
+  const overlaps = (r: DOMRect) =>
+    r.width > 0 &&
+    r.height > 0 &&
+    r.right > x &&
+    r.left < x + width &&
+    r.bottom > y &&
+    r.top < y + height;
+  const path = selectionRects
+    .filter(overlaps)
+    .map((r) => {
+      const left = r.left - x,
+        top = r.top - y;
+      return `M${left} ${top}h${r.width}v${r.height}h${-r.width}Z`;
+    })
+    .join(" ");
+  selectionMask.style.clipPath = path ? `path("${path}")` : "inset(100%)";
+  selectionMask.style.opacity = path ? "1" : "0";
+  const source = paintTarget?.getBoundingClientRect();
+  if (source) {
+    selectionInk.style.left = `${source.left - x}px`;
+    selectionInk.style.top = `${source.top - y}px`;
+    selectionInk.style.width = `${source.width}px`;
+    const copy = selectionInk.firstElementChild as HTMLElement | null;
+    if (copy) copy.style.width = `${source.width}px`;
+  }
+  let animating = false;
+  const liveFills = new Set(
+    document.querySelectorAll<HTMLElement>(
+      ".contact-links > .contact-link > .contact-ink, .page-shell .theme-toggle, body > .skip-link",
+    ),
+  );
+  for (const [fill, layer] of fillLayers) {
+    if (!liveFills.has(fill)) {
+      layer.mask.remove();
+      fillLayers.delete(fill);
+    } else layer.mask.style.display = "none";
+  }
+  for (const fill of liveFills) {
+    const box = fill.getBoundingClientRect();
+    if (!overlaps(box)) continue;
+    const styles = getComputedStyle(fill);
+    if (
+      styles.display === "none" ||
+      styles.backgroundColor !== getComputedStyle(cursor).backgroundColor
+    )
+      continue;
+    let layer = fillLayers.get(fill);
+    if (!layer) {
+      const mask = document.createElement("div");
+      mask.className = "cursor-fill";
+      const paint = document.createElement("div");
+      paint.className = "cursor-fill-ink";
+      paint.inert = true;
+      mask.append(paint);
+      cursor.append(mask);
+      layer = { mask, ink: paint, version: -1 };
+      fillLayers.set(fill, layer);
+    }
+    Object.assign(layer.mask.style, {
+      display: "block",
+      left: `${box.left - x}px`,
+      top: `${box.top - y}px`,
+      width: `${box.width}px`,
+      height: `${box.height}px`,
+      clipPath: styles.clipPath,
+      borderRadius: styles.borderRadius,
+    });
+    if (layer.version !== paintVersion) {
+      layer.ink.replaceChildren();
+      if (ink.firstElementChild)
+        layer.ink.append(ink.firstElementChild.cloneNode(true));
+      layer.version = paintVersion;
+    }
+    if (source) {
+      Object.assign(layer.ink.style, {
+        left: `${source.left - box.left}px`,
+        top: `${source.top - box.top}px`,
+        width: `${source.width}px`,
+      });
+      const copy = layer.ink.firstElementChild as HTMLElement | null;
+      if (copy) copy.style.width = `${source.width}px`;
+    }
+    animating ||= fill
+      .getAnimations()
+      .some((animation) => animation.playState === "running");
+  }
+  const liveLogos = new Set(
+    document.querySelectorAll<SVGSVGElement>(
+      ".systems .system-heading > .system-logo",
+    ),
+  );
+  for (const [logo, layer] of logoLayers) {
+    if (!liveLogos.has(logo)) {
+      layer.remove();
+      logoLayers.delete(logo);
+    } else layer.style.display = "none";
+  }
+  for (const logo of liveLogos) {
+    const box = logo.getBoundingClientRect();
+    if (!overlaps(box)) continue;
+    let layer = logoLayers.get(logo);
+    if (!layer) {
+      layer = logo.cloneNode(true) as SVGSVGElement;
+      layer.setAttribute("class", "cursor-logo");
+      cursor.append(layer);
+      logoLayers.set(logo, layer);
+    }
+    // The cursor clips the SVG itself, preserving transparent holes and edges.
+    Object.assign(layer.style, {
+      display: "block",
+      left: `${box.left - x}px`,
+      top: `${box.top - y}px`,
+      width: `${box.width}px`,
+      height: `${box.height}px`,
+    });
+  }
+  const decorated = new Set(
+    document.querySelectorAll<HTMLElement>(".header nav a, .back-to-top"),
+  );
+  for (const [element, layer] of decorationLayers) {
+    if (!decorated.has(element)) {
+      layer.remove();
+      decorationLayers.delete(element);
+    } else layer.style.display = "none";
+  }
+  for (const element of decorated) {
+    const box = element.getBoundingClientRect();
+    if (!overlaps(box)) continue;
+    const styles = getComputedStyle(element, "::after");
+    if (
+      styles.content === "none" ||
+      styles.backgroundColor !== getComputedStyle(cursor).backgroundColor
+    )
+      continue;
+    const lineWidth = parseFloat(styles.width),
+      lineHeight = parseFloat(styles.height);
+    if (!Number.isFinite(lineWidth) || !Number.isFinite(lineHeight)) continue;
+    let layer = decorationLayers.get(element);
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.className = "cursor-decoration";
+      cursor.append(layer);
+      decorationLayers.set(element, layer);
+    }
+    const top =
+      styles.top === "auto"
+        ? box.height - (parseFloat(styles.bottom) || 0) - lineHeight
+        : parseFloat(styles.top);
+    Object.assign(layer.style, {
+      display: "block",
+      left: `${box.left - x + (parseFloat(styles.left) || 0)}px`,
+      top: `${box.top - y + top}px`,
+      width: `${lineWidth}px`,
+      height: `${lineHeight}px`,
+      transform: styles.transform,
+      transformOrigin: styles.transformOrigin,
+    });
+    animating ||= element
+      .getAnimations({ subtree: true })
+      .some((animation) => animation.playState === "running");
+  }
+  return animating;
+}
 const enabled = () =>
   finePointer.matches && !reducedMotion.matches && !forcedColors.matches;
 function hide() {
@@ -96,6 +291,15 @@ function hide() {
   paintTarget = null;
   paintDirty = false;
   ink.replaceChildren();
+  selectionInk.replaceChildren();
+  selectionMask.style.opacity = "0";
+  for (const layer of fillLayers.values()) layer.mask.remove();
+  fillLayers.clear();
+  for (const layer of logoLayers.values()) layer.remove();
+  logoLayers.clear();
+  for (const layer of decorationLayers.values()) layer.remove();
+  decorationLayers.clear();
+  selectionDirty = true;
   cancelAnimationFrame(frame);
   frame = 0;
   if (cursor) cursor.style.opacity = "0";
@@ -121,8 +325,9 @@ function draw() {
     const clone = ink.firstElementChild as HTMLElement | null;
     if (clone) clone.style.width = `${box.width}px`;
   }
+  const animatingFill = updateContrast();
   frame =
-    Math.abs(targetX - x) + Math.abs(targetY - y) > 0.1
+    animatingFill || Math.abs(targetX - x) + Math.abs(targetY - y) > 0.1
       ? requestAnimationFrame(draw)
       : 0;
 }
@@ -135,11 +340,15 @@ addEventListener(
     }
     const target = event.target;
     if (!(target instanceof Element)) return;
-    const next = target.closest<HTMLElement>("a,button,p,h1,h2,h3,dt,dd");
+    const next =
+      target.closest<HTMLElement>("a,button,p,h1,h2,h3,dt,dd") ??
+      target.closest<HTMLElement>("span,small,summary,strong");
     if (next !== paintTarget) {
       paintTarget = next;
       sourceObserver.disconnect();
       ink.replaceChildren();
+      selectionInk.replaceChildren();
+      paintVersion++;
       paintDirty = true;
       if (next) {
         sourceObserver.observe(next, {
@@ -181,6 +390,12 @@ addEventListener(
   },
   { passive: true },
 );
+const refreshSelection = () => {
+  selectionDirty = true;
+  if (shown && !frame) frame = requestAnimationFrame(draw);
+};
+document.addEventListener("selectionchange", refreshSelection);
+document.fonts?.addEventListener("loadingdone", refreshSelection);
 document.documentElement.addEventListener("pointerleave", hide);
 addEventListener("blur", hide);
 addEventListener("scroll", hide, { passive: true });
